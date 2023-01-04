@@ -1,0 +1,27 @@
+[package]
+name = "rc-things"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bevy = { version = "0.9.1", optional = true }
+serde = { version = "1.0.148", features = ["derive"], optional = true }
+rmp-serde = { version = "1.1.1", optional = true }
+iyes_loopless = { version = "0.9.1", features = ["fixedtimestep"], optional = true }
+tello = { version = "0.6.3", optional = true }
+tokio = { version = "1.23.0", features = ["full"], optional = true }
+rppal = { version = "0.14.1", optional = true }
+
+[features]
+tello-client = ["bevy", "tello"]
+car-client = ["bevy", "serde", "rmp-serde", "iyes_loopless"]
+car-server = ["serde", "rmp-serde", "tokio", "rppal"]
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3
+
+[target.x86_64-apple-darwin]
+rustflags = ["-C", "link-arg=-fuse-ld=/usr/local/bin/zld", "-Zshare-generics=y"]
