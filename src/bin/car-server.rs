@@ -60,8 +60,6 @@ async fn watchdog(
                 *last_update = SystemTime::now();
 
                 println!("last_update={:?}, watchdog fired!", last_update);
-            } else {
-                println!("last_update={:?}, watchdog okay.", last_update);
             }
         }
 
@@ -75,7 +73,7 @@ async fn run(
     throttle_and_brake_pwm: Arc<Mutex<Pwm>>,
     steering_pwm: Arc<Mutex<Pwm>>,
 ) {
-    let mut throttle_and_brake_scale = 1.0;
+    let mut throttle_and_brake_scale = 0.33;
 
     let mut buf: Vec<u8> = vec![0; 65536];
 
@@ -94,7 +92,7 @@ async fn run(
         if input_message.up {
             throttle_and_brake_scale = 1.0;
         } else if input_message.down {
-            throttle_and_brake_scale = 0.25;
+            throttle_and_brake_scale = 0.33;
         }
 
         let mut scaled_throttle = input_message.throttle * throttle_and_brake_scale;

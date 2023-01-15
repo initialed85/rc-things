@@ -20,6 +20,8 @@ pub struct InputMessage {
     pub handbrake: bool,
     pub up: bool,
     pub down: bool,
+    pub left_drive: f32,
+    pub right_drive: f32,
 }
 
 pub fn serialize<T>(t: T) -> Vec<u8>

@@ -20,7 +20,7 @@ pub const TITLE: &str = "car-client";
 pub const BOUNDS: Vec2 = Vec2::new(640.0, 400.0);
 pub const LOCAL_TIME_STEP: f64 = 1.0 / 60.0;
 pub const LOCAL_TIME_STEP_NAME: &str = "local_time_step";
-pub const NETWORK_TIME_STEP: f64 = 1.0 / 30.0;
+pub const NETWORK_TIME_STEP: f64 = 1.0 / 15.0;
 pub const NETWORK_TIME_STEP_NAME: &str = "network_time_step";
 
 #[derive(Component, Debug)]
@@ -39,34 +39,23 @@ fn handle_setup(mut commands: Commands) {
 fn handle_input(
     gamepads: Res<Gamepads>,
     button_inputs: Res<Input<GamepadButton>>,
-    button_axes: Res<Axis<GamepadButton>>,
     axes: Res<Axis<GamepadAxis>>,
     mut input_state: ResMut<InputState>,
 ) {
     for gamepad in gamepads.iter() {
-        let throttle = button_axes
-            .get(GamepadButton::new(
-                gamepad,
-                GamepadButtonType::RightTrigger2,
-            ))
+        let left_drive = axes
+            .get(GamepadAxis::new(gamepad, GamepadAxisType::LeftStickY))
             .unwrap();
 
-        let brake = button_axes
-            .get(GamepadButton::new(gamepad, GamepadButtonType::LeftTrigger2))
+        let right_drive = axes
+            .get(GamepadAxis::new(gamepad, GamepadAxisType::RightStickY))
             .unwrap();
 
-        let steering = axes
-            .get(GamepadAxis::new(gamepad, GamepadAxisType::LeftStickX))
-            .unwrap();
-
-        let mut handbrake: bool = false;
         let mut up: bool = false;
         let mut down: bool = false;
 
         for button_input in button_inputs.get_pressed() {
-            if button_input.button_type == GamepadButtonType::South {
-                handbrake = true;
-            } else if button_input.button_type == GamepadButtonType::DPadUp {
+            if button_input.button_type == GamepadButtonType::DPadUp {
                 up = true;
             } else if button_input.button_type == GamepadButtonType::DPadDown {
                 down = true;
@@ -74,14 +63,14 @@ fn handle_input(
         }
 
         let input_message = InputMessage {
-            throttle,
-            brake,
-            steering,
-            handbrake,
+            throttle: 0.0,
+            brake: 0.0,
+            steering: 0.0,
+            handbrake: false,
             up,
             down,
-            left_drive: 0.0,
-            right_drive: 0.0,
+            left_drive: -left_drive,
+            right_drive: -right_drive,
         };
 
         // TODO: what about multiple gamepads?
