@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bevy = { version = "0.9.1", optional = true }
+bevy = { version = "0.9.1", optional = true, default-features = false, features = ["bevy_winit", "bevy_gilrs"] }
 serde = { version = "1.0.148", features = ["derive"], optional = true }
 rmp-serde = { version = "1.1.1", optional = true }
 iyes_loopless = { version = "0.9.1", features = ["fixedtimestep"], optional = true }
