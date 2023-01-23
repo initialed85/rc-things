@@ -41,10 +41,6 @@ struct InputState {
     pub is_handled: bool,
 }
 
-fn handle_setup(mut commands: Commands) {
-    // commands.spawn((Camera2dBundle::default(), MainCamera));
-}
-
 fn handle_input(
     gamepads: Res<Gamepads>,
     button_inputs: Res<Input<GamepadButton>>,
@@ -71,8 +67,11 @@ fn handle_input(
             }
         }
 
-        // let x_scale = 0.5 - (right_y.abs() / 2.0);
-        let x_scale = 1.0;
+        // TODO this is still too twitchy at low speeds (but manageable at high speeds)
+        // let x_scale = 1.0 - right_y.abs();
+
+        // TODO this is fine while moving, but slow for pivoting
+        let x_scale = 0.33;
 
         let mut left_drive = 0.0;
         let mut right_drive = 0.0;
@@ -125,7 +124,7 @@ fn main() {
     let mut app = App::new();
 
     app.add_plugin(LogPlugin {
-        filter: "car_client=trace,wgpu_core=warn,bevy_render=warn".into(),
+        filter: "robot-client=trace,wgpu_core=warn,bevy_render=warn".into(),
         level: log::Level::INFO,
     });
     app.add_plugin(CorePlugin::default());
@@ -136,7 +135,6 @@ fn main() {
     app.add_plugin(InputPlugin::default());
     app.add_plugin(WindowPlugin::default());
     app.add_plugin(WinitPlugin::default());
-    // app.add_plugin(CorePipelinePlugin::default());
     app.add_plugin(GilrsPlugin::default());
 
     app.add_fixed_timestep(
@@ -155,8 +153,6 @@ fn main() {
         last_input_message: None,
         is_handled: false,
     });
-
-    app.add_startup_system(handle_setup);
 
     app.add_fixed_timestep_system(LOCAL_TIME_STEP_NAME, 0, handle_input);
 

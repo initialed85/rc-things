@@ -2,16 +2,23 @@ use std::net::{SocketAddr, UdpSocket};
 use std::time::Duration;
 
 use bevy::app::App;
+use bevy::core::CorePlugin;
+use bevy::diagnostic::DiagnosticsPlugin;
+use bevy::gilrs::GilrsPlugin;
+use bevy::hierarchy::HierarchyPlugin;
+use bevy::input::InputPlugin;
+use bevy::log;
 use bevy::log::LogPlugin;
 use bevy::math::Vec2;
 use bevy::prelude::WindowPosition::At;
 use bevy::prelude::{
-    default, Axis, Camera2dBundle, Commands, Component, GamepadAxis, GamepadAxisType,
-    GamepadButton, GamepadButtonType, Gamepads, Input, IntoSystemDescriptor, NonSend, PluginGroup,
-    Res, ResMut, Resource, SystemSet, WindowDescriptor, WindowPlugin,
+    default, Axis, Commands, Component, GamepadAxis, GamepadAxisType, GamepadButton,
+    GamepadButtonType, Gamepads, Input, IntoSystemDescriptor, NonSend, PluginGroup, Res, ResMut,
+    Resource, SystemSet, TransformPlugin, WindowDescriptor, WindowPlugin,
 };
+use bevy::time::TimePlugin;
 use bevy::window::PresentMode;
-use bevy::DefaultPlugins;
+use bevy::winit::WinitPlugin;
 use iyes_loopless::prelude::AppLooplessFixedTimestepExt;
 
 use rc_things::{get_socket_addr_from_env, serialize, InputMessage};
@@ -23,17 +30,10 @@ pub const LOCAL_TIME_STEP_NAME: &str = "local_time_step";
 pub const NETWORK_TIME_STEP: f64 = 1.0 / 30.0;
 pub const NETWORK_TIME_STEP_NAME: &str = "network_time_step";
 
-#[derive(Component, Debug)]
-struct MainCamera;
-
 #[derive(Resource, Debug)]
 struct InputState {
     pub last_input_message: Option<InputMessage>,
     pub is_handled: bool,
-}
-
-fn handle_setup(mut commands: Commands) {
-    commands.spawn((Camera2dBundle::default(), MainCamera));
 }
 
 fn handle_input(
@@ -111,24 +111,19 @@ fn handle_network(input_state: Res<InputState>, socket: NonSend<UdpSocket>) {
 fn main() {
     let mut app = App::new();
 
-    app.add_plugins(
-        DefaultPlugins
-            .set(WindowPlugin {
-                window: WindowDescriptor {
-                    title: TITLE.to_string(),
-                    width: BOUNDS.x,
-                    height: BOUNDS.y,
-                    present_mode: PresentMode::Fifo,
-                    position: At(Vec2::new(0.0, 0.0)),
-                    ..default()
-                },
-                ..default()
-            })
-            .set(LogPlugin {
-                filter: "car_client=trace,wgpu_core=warn,bevy_render=warn".into(),
-                level: bevy::log::Level::INFO,
-            }),
-    );
+    app.add_plugin(LogPlugin {
+        filter: "robot-client=trace,wgpu_core=warn,bevy_render=warn".into(),
+        level: log::Level::INFO,
+    });
+    app.add_plugin(CorePlugin::default());
+    app.add_plugin(TimePlugin::default());
+    app.add_plugin(TransformPlugin::default());
+    app.add_plugin(HierarchyPlugin::default());
+    app.add_plugin(DiagnosticsPlugin::default());
+    app.add_plugin(InputPlugin::default());
+    app.add_plugin(WindowPlugin::default());
+    app.add_plugin(WinitPlugin::default());
+    app.add_plugin(GilrsPlugin::default());
 
     app.add_fixed_timestep(
         Duration::from_secs_f64(LOCAL_TIME_STEP as f64),
@@ -141,8 +136,6 @@ fn main() {
     );
 
     app.add_fixed_timestep_system_set(LOCAL_TIME_STEP_NAME, 0, SystemSet::default());
-
-    app.add_startup_system(handle_setup);
 
     app.insert_resource(InputState {
         last_input_message: None,

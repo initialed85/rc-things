@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8)
-project(ARoboCoreProject NONE)
+project(rc-things NONE)
 
 set(HFRAMEWORK_PATH ./sdk)
 set(BOARD_TYPE CORE2)
