@@ -45,7 +45,7 @@ cargo build --bin car-server --features car-server && sudo bash -c "HOST=0.0.0.0
 #### Client
 
 ```shell
-cargo build --bin car-client --features car-client && HOST=192.168.137.25 PORT=13337 ./target/debug/car-client
+cargo build --bin car-client --features car-client && HOST=192.168.137.22 PORT=13337 ./target/debug/car-client
 ```
 
 NOTE: The IP of your server is more than likely not `192.168.137.25`
@@ -86,3 +86,19 @@ cargo build --bin robot-client --features robot-client && HOST=192.168.137.26 PO
 ```
 
 NOTE: The IP of your server is more than likely not `192.168.137.26`
+
+#### Android
+
+```shell
+# one time
+cargo install --git=https://github.com/dodorare/crossbow crossbundle
+brew install java
+echo 'export PATH="/opt/homebrew/opt/openjdk/bin:$PATH"' >> ~/.bash_profile
+sudo ln -sfn /opt/homebrew/opt/openjdk/libexec/openjdk.jdk /Library/Java/JavaVirtualMachines/openjdk.jdk
+crossbundle install --preferred
+crossbundle install command-line-tools
+crossbundle install sdkmanager --install "build-tools;31.0.0" "ndk;23.1.7779620" "platforms;android-31"
+crossbundle install bundletool
+
+# per build
+```

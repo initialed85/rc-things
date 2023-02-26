@@ -56,6 +56,14 @@ fn handle_input(
             .get(GamepadAxis::new(gamepad, GamepadAxisType::RightStickY))
             .unwrap();
 
+        let left_x = axes
+            .get(GamepadAxis::new(gamepad, GamepadAxisType::LeftStickX))
+            .unwrap();
+
+        let left_y = axes
+            .get(GamepadAxis::new(gamepad, GamepadAxisType::LeftStickY))
+            .unwrap();
+
         let mut up: bool = false;
         let mut down: bool = false;
 
@@ -72,6 +80,9 @@ fn handle_input(
 
         // TODO this is fine while moving, but slow for pivoting
         let x_scale = 0.33;
+
+        // TODO no changes
+        // let x_scale = 1.0;
 
         let mut left_drive = 0.0;
         let mut right_drive = 0.0;
