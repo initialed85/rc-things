@@ -11,8 +11,6 @@ iyes_loopless = { version = "0.9.1", features = ["fixedtimestep"], optional = tr
 tello = { version = "0.6.3", optional = true }
 tokio = { version = "1.23.0", features = ["full"], optional = true }
 rppal = { version = "0.14.1", optional = true }
-#crossbow = { version = "0.2.3", optional = true }
-
 
 [features]
 car-client = ["bevy", "serde", "rmp-serde", "iyes_loopless"]
@@ -33,25 +31,37 @@ rustflags = ["-C", "link-arg=-fuse-ld=/usr/local/bin/zld", "-Zshare-generics=y"]
 [target.aarch64-unknown-linux-gnu]
 linker = "/usr/local/bin/aarch64-none-elf-gcc"
 
-#[package.metadata]
-#app_name = "rc-things"
-#
-#[package.metadata.android]
-#release_build_targets = ["aarch64-linux-android"]
-#
-#[[package.metadata.android.plugins_local_projects]]
-#include = ":crossbow"
-#dont_implement = true
-#
-#[[package.metadata.android.plugins_local_projects]]
-#include = ":crossbow:lib"
-#
-#[package.metadata.android.manifest]
-#package = "com.crossbow.example.permissions"
-#
-#[[package.metadata.android.manifest.uses_permission]]
-#name = "android.permission.INTERNET"
-#
-#[package.metadata.android.manifest.uses_sdk]
-#min_sdk_version = 19
-#target_sdk_version = 31
+[target.aarch64-linux-android]
+linker = "/Users/edwardbeech/Library/Android/sdk/ndk/22.1.7171670/toolchains/llvm/prebuilt/darwin-x86_64/bin/aarch64-linux-android30-clang"
+
+[target.'cfg(target_os = "android")'.dependencies]
+jni = "0.20"
+libc = "0.2"
+log = "0.4.14"
+ndk = { version = "0.7", features = ["api-level-30"] }
+ndk-context = "0.1.1"
+android_logger = "0.11.0"
+android-activity = { version = "0.4", features = ["native-activity"] }
+
+[package.metadata.android]
+build_targets = ["aarch64-linux-android"]
+apk_name = "car-client"
+
+[package.metadata.android.sdk]
+target_sdk_version = 30
+
+# [[package.metadata.android.uses_feature]]
+# name = "android.hardware.vulkan.level"
+# required = true
+# version = 1
+
+# [[bin]]
+# name = "car-client"
+# required-features = ["car-client"]
+
+# [[bin]]
+# name = "robot-client"
+# required-features = ["robot-client"]
+
+[lib]
+crate-type = ["cdylib"]
