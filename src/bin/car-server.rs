@@ -1,8 +1,3 @@
-use std::borrow::{Borrow, BorrowMut};
-use std::error::Error;
-use std::io;
-use std::net::SocketAddr;
-use std::ops::DerefMut;
 use std::sync::{Arc, Mutex};
 use std::time::SystemTime;
 
@@ -119,9 +114,9 @@ async fn run(
         let last_update = last_update.lock().unwrap();
 
         println!(
-            "last_update={:?}, input_message={:?}, steering_duty_cycle={:?}, throttle_and_brake_duty_cycle={:?}",
-            last_update, input_message, steering_duty_cycle, throttle_and_brake_duty_cycle
-        );
+             "last_update={:?}, input_message={:?}, steering_duty_cycle={:?}, throttle_and_brake_duty_cycle={:?}",
+             last_update, input_message, steering_duty_cycle, throttle_and_brake_duty_cycle
+         );
     }
 }
 

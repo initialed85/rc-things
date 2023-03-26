@@ -1,29 +1,21 @@
-use std::f32::consts::PI;
 use std::net::{SocketAddr, UdpSocket};
 use std::time::Duration;
 
-use bevy::app::{App, PluginGroup, PluginGroupBuilder};
+use bevy::app::App;
 use bevy::core::CorePlugin;
-use bevy::diagnostic;
 use bevy::diagnostic::DiagnosticsPlugin;
 use bevy::gilrs::GilrsPlugin;
-use bevy::hierarchy;
 use bevy::hierarchy::HierarchyPlugin;
-use bevy::input;
 use bevy::input::{Axis, Input, InputPlugin};
 use bevy::log;
 use bevy::log::LogPlugin;
 use bevy::math::Vec2;
-use bevy::prelude::WindowPosition::At;
 use bevy::prelude::{
-    default, Commands, GamepadAxis, GamepadAxisType, GamepadButton, GamepadButtonType, Gamepads,
-    IntoSystemDescriptor, NonSend, Res, ResMut, Resource, SystemSet, TransformPlugin,
-    WindowDescriptor, WindowPlugin, Windows,
+    GamepadAxis, GamepadAxisType, GamepadButton, GamepadButtonType, Gamepads, IntoSystemDescriptor,
+    NonSend, Res, ResMut, Resource, SystemSet, TransformPlugin, WindowPlugin,
 };
 use bevy::time::TimePlugin;
-use bevy::window::CreateWindow;
 use bevy::winit::WinitPlugin;
-use bevy::{core, MinimalPlugins};
 use iyes_loopless::prelude::AppLooplessFixedTimestepExt;
 
 use rc_things::{get_socket_addr_from_env, serialize, InputMessage};
@@ -56,14 +48,6 @@ fn handle_input(
             .get(GamepadAxis::new(gamepad, GamepadAxisType::RightStickY))
             .unwrap();
 
-        let left_x = axes
-            .get(GamepadAxis::new(gamepad, GamepadAxisType::LeftStickX))
-            .unwrap();
-
-        let left_y = axes
-            .get(GamepadAxis::new(gamepad, GamepadAxisType::LeftStickY))
-            .unwrap();
-
         let mut up: bool = false;
         let mut down: bool = false;
 
@@ -84,11 +68,8 @@ fn handle_input(
         // TODO no changes
         // let x_scale = 1.0;
 
-        let mut left_drive = 0.0;
-        let mut right_drive = 0.0;
-
-        left_drive = -(right_x * x_scale);
-        right_drive = (right_x * x_scale);
+        let mut left_drive = -right_x * x_scale;
+        let mut right_drive = right_x * x_scale;
 
         left_drive += right_y;
         right_drive += right_y;
@@ -126,7 +107,6 @@ fn handle_network(input_state: Res<InputState>, socket: NonSend<UdpSocket>) {
     println!("input_message={:?}", input_message);
 
     let input_message_data = serialize(input_message.clone());
-    // println!("input_message_data={:?}", input_message_data);
 
     let _ = socket.send(input_message_data.to_vec().as_slice());
 }
@@ -135,7 +115,7 @@ fn main() {
     let mut app = App::new();
 
     app.add_plugin(LogPlugin {
-        filter: "robot-client=trace,wgpu_core=warn,bevy_render=warn".into(),
+        filter: "robot_client=trace,wgpu_core=warn,bevy_render=warn".into(),
         level: log::Level::INFO,
     });
     app.add_plugin(CorePlugin::default());

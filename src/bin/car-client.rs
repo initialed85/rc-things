@@ -10,14 +10,11 @@ use bevy::input::InputPlugin;
 use bevy::log;
 use bevy::log::LogPlugin;
 use bevy::math::Vec2;
-use bevy::prelude::WindowPosition::At;
 use bevy::prelude::{
-    default, Axis, Commands, Component, GamepadAxis, GamepadAxisType, GamepadButton,
-    GamepadButtonType, Gamepads, Input, IntoSystemDescriptor, NonSend, PluginGroup, Res, ResMut,
-    Resource, SystemSet, TransformPlugin, WindowDescriptor, WindowPlugin,
+    Axis, GamepadAxis, GamepadAxisType, GamepadButton, GamepadButtonType, Gamepads, Input,
+    IntoSystemDescriptor, NonSend, Res, ResMut, Resource, SystemSet, TransformPlugin, WindowPlugin,
 };
 use bevy::time::TimePlugin;
-use bevy::window::PresentMode;
 use bevy::winit::WinitPlugin;
 use iyes_loopless::prelude::AppLooplessFixedTimestepExt;
 
@@ -112,7 +109,7 @@ fn main() {
     let mut app = App::new();
 
     app.add_plugin(LogPlugin {
-        filter: "robot-client=trace,wgpu_core=warn,bevy_render=warn".into(),
+        filter: "robot_client=trace,wgpu_core=warn,bevy_render=warn".into(),
         level: log::Level::INFO,
     });
     app.add_plugin(CorePlugin::default());
