@@ -9,7 +9,5 @@ function finish() {
 }
 trap finish EXIT
 
-rc-client/build.sh
-stm32-rc-tank/build.sh
-esp32-rc-car/build.sh
-pi-rc-tank/build.sh
+echo -e "\nflashing target code...\n"
+espflash --speed 460800 /dev/cu.usbserial-* target/xtensa-esp32-espidf/debug/esp32-rc-truck

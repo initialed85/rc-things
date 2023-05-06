@@ -9,7 +9,5 @@ function finish() {
 }
 trap finish EXIT
 
-rc-client/build.sh
-stm32-rc-tank/build.sh
-esp32-rc-car/build.sh
-pi-rc-tank/build.sh
+echo -e "\nrunning natuve tests...\n"
+cargo test --lib -- --nocapture

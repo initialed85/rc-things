@@ -9,7 +9,9 @@ function finish() {
 }
 trap finish EXIT
 
-rc-client/build.sh
-stm32-rc-tank/build.sh
-esp32-rc-car/build.sh
-pi-rc-tank/build.sh
+echo -e "\nrunning native build...\n"
+cargo build
+
+echo -e "\nbuilt artifacts:\n"
+
+find "$(pwd)/target/xtensa-esp32-espidf/debug/esp32-rc-truck"
