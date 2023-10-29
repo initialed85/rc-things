@@ -9,6 +9,8 @@ pub struct InputMessage {
     // Other
     pub mode_up: bool,
     pub mode_down: bool,
+    pub mode_left: bool,
+    pub mode_right: bool,
     pub handbrake: bool,
 }
 
@@ -44,6 +46,8 @@ mod tests {
             throttle_right: 0.69,
             mode_up: true,
             mode_down: true,
+            mode_left: true,
+            mode_right: true,
             handbrake: true,
         };
 

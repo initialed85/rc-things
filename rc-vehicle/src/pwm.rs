@@ -203,6 +203,8 @@ mod tests {
             throttle_right: 0.0,
             mode_up: false,
             mode_down: false,
+            mode_left: false,
+            mode_right: false,
             handbrake: false,
         };
     }

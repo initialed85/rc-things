@@ -104,7 +104,7 @@ fn main() -> anyhow::Result<()> {
         let pwm_car = rc_vehicle::pwm::PwmCar::new(
             throttle_freq_hz,
             throttle_max_duty,
-            false,
+            true,
             steering_freq_hz,
             steering_max_duty,
             false,
@@ -117,6 +117,7 @@ fn main() -> anyhow::Result<()> {
             Box::new(pwm_car),
             -0.20,
             0.20,
+            0.0,
         );
 
         vehicle.run()?;

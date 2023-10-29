@@ -74,16 +74,22 @@ fn handle_input(
             .unwrap();
 
         let mut handbrake: bool = false;
-        let mut up: bool = false;
-        let mut down: bool = false;
+        let mut mode_up: bool = false;
+        let mut mode_down: bool = false;
+        let mut mode_left: bool = false;
+        let mut mode_right: bool = false;
 
         for button_input in button_inputs.get_pressed() {
             if button_input.button_type == GamepadButtonType::South {
                 handbrake = true;
             } else if button_input.button_type == GamepadButtonType::DPadUp {
-                up = true;
+                mode_up = true;
             } else if button_input.button_type == GamepadButtonType::DPadDown {
-                down = true;
+                mode_down = true;
+            } else if button_input.button_type == GamepadButtonType::DPadLeft {
+                mode_left = true;
+            } else if button_input.button_type == GamepadButtonType::DPadRight {
+                mode_right = true;
             }
         }
 
@@ -93,8 +99,10 @@ fn handle_input(
             throttle_right,
             steering,
             handbrake,
-            mode_up: up,
-            mode_down: down,
+            mode_up,
+            mode_down,
+            mode_left,
+            mode_right,
         };
 
         // TODO: what about multiple gamepads?

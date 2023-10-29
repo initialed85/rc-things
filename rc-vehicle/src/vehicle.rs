@@ -1,3 +1,4 @@
+// TODO: disabled to save cycles
 // const MESSAGE_EARLY_HZ: f64 = 30.0;
 // const MESSAGE_EARLY: std::time::Duration = std::time::Duration::from_millis((1.0 / MESSAGE_EARLY_HZ * 1000.0) as u64);
 
@@ -16,6 +17,8 @@ fn get_safe_input_message() -> rc_messaging::serialization::InputMessage {
         throttle_right: 0.0,
         mode_up: false,
         mode_down: false,
+        mode_left: false,
+        mode_right: false,
         handbrake: true,
     };
 }
@@ -27,6 +30,7 @@ pub struct Vehicle {
     last_input_message: Option<rc_messaging::serialization::InputMessage>,
     throttle_min: f32,
     throttle_max: f32,
+    steering_offset: f32,
 }
 
 impl Vehicle {
@@ -35,6 +39,7 @@ impl Vehicle {
         input_message_handler: Box<dyn InputMessageHandler>,
         starting_throttle_min: f32,
         starting_throttle_max: f32,
+        starting_steering_offset: f32,
     ) -> Self {
         Self {
             incoming_input_message_receiver,
@@ -43,6 +48,7 @@ impl Vehicle {
             last_input_message: None,
             throttle_min: starting_throttle_min,
             throttle_max: starting_throttle_max,
+            steering_offset: starting_steering_offset,
         }
     }
 
@@ -66,6 +72,7 @@ impl Vehicle {
     pub fn run(&mut self) -> anyhow::Result<()> {
         let safe_input_message = get_safe_input_message();
 
+        // TODO: disabled to save cycles
         // let mut last_message_time = std::time::Instant::now();
 
         loop {
@@ -117,6 +124,18 @@ impl Vehicle {
                 self.throttle_min = self.throttle_min.min(0.0);
             }
 
+            if input_message.mode_left {
+                self.steering_offset -= 0.01;
+                self.steering_offset = self.steering_offset.min(1.0);
+                self.steering_offset = self.steering_offset.max(-1.0);
+            }
+
+            if input_message.mode_right {
+                self.steering_offset += 0.01;
+                self.steering_offset = self.steering_offset.min(1.0);
+                self.steering_offset = self.steering_offset.max(-1.0);
+            }
+
             if input_message.throttle > 0.0 {
                 input_message.throttle = input_message.throttle.min(self.throttle_max);
             } else if input_message.throttle < 0.0 {
@@ -135,7 +154,9 @@ impl Vehicle {
                 input_message.throttle_right = input_message.throttle_right.max(self.throttle_min);
             }
 
-            // TODO: disabled to save cycles; ironic because it's about saving cycles
+            input_message.steering = (input_message.steering + self.steering_offset).min(1.0).max(-1.0);
+
+            // TODO: disabled to save cycles
             // let now = std::time::Instant::now();
             // let message_interval = now - last_message_time;
             // if message_interval < MESSAGE_EARLY {
@@ -187,6 +208,9 @@ mod tests {
         let drain_input_messages = move || {
             let mut input_messages = closure_input_messages.lock().unwrap();
             let cloned_input_messages = input_messages.clone();
+            for x in cloned_input_messages.clone() {
+                println!("{:?}", x);
+            }
             input_messages.clear();
             return cloned_input_messages;
         };
@@ -204,11 +228,13 @@ mod tests {
             throttle_right: 0.0,
             mode_up: false,
             mode_down: false,
+            mode_left: false,
+            mode_right: false,
             handbrake: false,
         };
 
         let vehicle_handle = std::thread::spawn(move || {
-            let mut vehicle = Vehicle::new(receiver, Box::new(test_vehicle), -1.0, 1.0);
+            let mut vehicle = Vehicle::new(receiver, Box::new(test_vehicle), -1.0, 1.0, 0.0);
             let vehicle_closer = vehicle.get_closer();
             vehicle_closer_sender.send(vehicle_closer).unwrap();
             vehicle.run().unwrap();
@@ -221,23 +247,83 @@ mod tests {
 
     #[test]
     fn happy_path() -> anyhow::Result<()> {
-        let (sender, drain_input_messages, vehicle_closer, vehicle_handle, input_message) = get_test_resources();
+        let (sender, drain_input_messages, vehicle_closer, vehicle_handle, mut input_message) = get_test_resources();
 
-        // this message will be handled
         std::thread::sleep(MESSAGE_INTERVAL);
         sender.send(input_message.clone()).unwrap();
-
         std::thread::sleep(MESSAGE_INTERVAL);
         let input_messages = drain_input_messages();
-
         assert_eq!(input_messages.contains(&input_message), true);
+
+        let mut expected_input_message = input_message.clone();
+        expected_input_message.throttle = 0.8;
+        input_message.mode_down = true;
+        std::thread::sleep(MESSAGE_INTERVAL);
+        sender.send(input_message.clone()).unwrap();
+        std::thread::sleep(MESSAGE_INTERVAL);
+        input_message.mode_down = false;
+        std::thread::sleep(MESSAGE_INTERVAL);
+        sender.send(input_message.clone()).unwrap();
+        std::thread::sleep(MESSAGE_INTERVAL);
+        let input_messages = drain_input_messages();
+        assert_eq!(input_messages.contains(&expected_input_message), true);
+
+        let mut expected_input_message = input_message.clone();
+        expected_input_message.throttle = 0.8;
+        expected_input_message.steering = -0.01;
+        input_message.mode_left = true;
+        std::thread::sleep(MESSAGE_INTERVAL);
+        sender.send(input_message.clone()).unwrap();
+        std::thread::sleep(MESSAGE_INTERVAL);
+        input_message.mode_left = false;
+        std::thread::sleep(MESSAGE_INTERVAL);
+        sender.send(input_message.clone()).unwrap();
+        std::thread::sleep(MESSAGE_INTERVAL);
+        let input_messages = drain_input_messages();
+        assert_eq!(input_messages.contains(&expected_input_message), true);
+
+        let mut expected_input_message = input_message.clone();
+        expected_input_message.throttle = 0.8;
+        expected_input_message.steering = -0.09999999;
+
+        for _ in 0..9 {
+            input_message.mode_left = true;
+            std::thread::sleep(MESSAGE_INTERVAL);
+            sender.send(input_message.clone()).unwrap();
+            std::thread::sleep(MESSAGE_INTERVAL);
+            input_message.mode_left = false;
+            std::thread::sleep(MESSAGE_INTERVAL);
+            sender.send(input_message.clone()).unwrap();
+            std::thread::sleep(MESSAGE_INTERVAL);
+        }
+
+        let input_messages = drain_input_messages();
+        assert_eq!(input_messages.contains(&expected_input_message), true);
+
+        let mut expected_input_message = input_message.clone();
+        expected_input_message.throttle = 0.8;
+        expected_input_message.steering = 0.0;
+
+        for _ in 0..10 {
+            input_message.mode_right = true;
+            std::thread::sleep(MESSAGE_INTERVAL);
+            sender.send(input_message.clone()).unwrap();
+            std::thread::sleep(MESSAGE_INTERVAL);
+            input_message.mode_right = false;
+            std::thread::sleep(MESSAGE_INTERVAL);
+            sender.send(input_message.clone()).unwrap();
+            std::thread::sleep(MESSAGE_INTERVAL);
+        }
+
+        let input_messages = drain_input_messages();
+        assert_eq!(input_messages.contains(&expected_input_message), true);
 
         vehicle_closer();
         vehicle_handle.join().unwrap();
         return Ok(());
     }
 
-    // TODO: because it's disabled to save cycles
+    // TODO: disabled to save cycles
     // #[test]
     // fn too_early() -> anyhow::Result<()> {
     //     let (sender, drain_input_messages, vehicle_closer, vehicle_handle, input_message) = get_test_resources();
