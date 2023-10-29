@@ -54,6 +54,7 @@ fn main() -> anyhow::Result<()> {
             Box::new(string_format_tank),
             -0.20,
             0.20,
+            0.0,
         );
 
         vehicle.run()?;
