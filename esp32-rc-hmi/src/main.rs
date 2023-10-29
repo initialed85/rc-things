@@ -10,7 +10,6 @@ use esp_idf_svc::{eventloop::EspSystemEventLoop, nvs::EspDefaultNvsPartition, wi
 use esp_idf_svc::log::EspLogger;
 use esp_idf_sys::*;
 use esp_idf_sys::*;
-use std::sync::{Arc,Mutex};
 
 // TODO: can't remove import of esp_idf_sys + link_patches call as of 4.4
 
@@ -82,16 +81,15 @@ fn main() -> anyhow::Result<()> {
     // run a thread to handle Client
     std::thread::Builder::new()
         .stack_size(32768).spawn(move || -> anyhow::Result<()> {
-
         client.run()?;
 
         return Ok(());
     })?;
 
+    // TODO: move this loop into an abstraction like the other stuff
     // run a thread to handle input
     std::thread::Builder::new()
         .stack_size(32768).spawn(move || -> anyhow::Result<()> {
-
         loop {
             // 142 (forward) -> 1650 (neutral) -> 2580 (reverse)
             let raw_throttle = adc.read(&mut throttle_adc_pin)?;
@@ -100,16 +98,16 @@ fn main() -> anyhow::Result<()> {
             let raw_steering = adc.read(&mut steering_adc_pin)?;
 
             let mut throttle: f32 = raw_throttle.into();
-            throttle = -(((throttle - 142.0) / (3134.0 - 142.0)) * 2.0 - 1.0);
-            throttle += 0.0075;
-            if throttle >= -0.01 && throttle <= 0.01 {
+            throttle = -(((throttle - 142.0) / (3134.0 - 142.0)) * 2.0 - 1.0); // rough translate and scale
+            throttle += 0.0075; // adjust out remaining error
+            if throttle >= -0.01 && throttle <= 0.01 { // apply deadzone
                 throttle = 0.0;
             }
 
             let mut steering: f32 = raw_steering.into();
-            steering = ((steering - 142.0) / (3134.0 - 142.0)) * 2.0 - 1.0;
-            steering -= 0.129;
-            if steering >= -0.01 && steering <= 0.01 {
+            steering = ((steering - 142.0) / (3134.0 - 142.0)) * 2.0 - 1.0; // rough translate and scale
+            steering -= 0.129; // adjust out remaining error
+            if steering >= -0.01 && steering <= 0.01 { // apply deadzone
                 steering = 0.0;
             }
 
