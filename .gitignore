@@ -4,3 +4,5 @@
 .idea
 /**/cmake-build-debug
 /artifacts
+espressif
+platformio

@@ -105,21 +105,21 @@ impl Vehicle {
             let mut input_message = recv_timeout_result?;
 
             if input_message.mode_up && (self.last_input_message.is_none() || !self.last_input_message.as_ref().unwrap().mode_up) {
-                self.throttle_max += 0.20;
+                self.throttle_max += 0.10;
                 self.throttle_max = self.throttle_max.min(1.0);
                 self.throttle_max = self.throttle_max.max(0.0);
 
-                self.throttle_min -= 0.20;
+                self.throttle_min -= 0.10;
                 self.throttle_min = self.throttle_min.max(-1.0);
                 self.throttle_min = self.throttle_min.min(0.0);
             }
 
             if input_message.mode_down && (self.last_input_message.is_none() || !self.last_input_message.as_ref().unwrap().mode_down) {
-                self.throttle_max -= 0.20;
+                self.throttle_max -= 0.10;
                 self.throttle_max = self.throttle_max.min(1.0);
                 self.throttle_max = self.throttle_max.max(0.0);
 
-                self.throttle_min += 0.20;
+                self.throttle_min += 0.10;
                 self.throttle_min = self.throttle_min.max(-1.0);
                 self.throttle_min = self.throttle_min.min(0.0);
             }
@@ -136,25 +136,42 @@ impl Vehicle {
                 self.steering_offset = self.steering_offset.max(-1.0);
             }
 
+            // TODO: this is the old throttle limit code
+            // if input_message.throttle > 0.0 {
+            //     input_message.throttle = input_message.throttle.min(self.throttle_max);
+            // } else if input_message.throttle < 0.0 {
+            //     input_message.throttle = input_message.throttle.max(self.throttle_min);
+            // }
+            //
+            // if input_message.throttle_left > 0.0 {
+            //     input_message.throttle_left = input_message.throttle_left.min(self.throttle_max);
+            // } else if input_message.throttle_left < 0.0 {
+            //     input_message.throttle_left = input_message.throttle_left.max(self.throttle_min);
+            // }
+            //
+            // if input_message.throttle_right > 0.0 {
+            //     input_message.throttle_right = input_message.throttle_right.min(self.throttle_max);
+            // } else if input_message.throttle_right < 0.0 {
+            //     input_message.throttle_right = input_message.throttle_right.max(self.throttle_min);
+            // }
+
+            // the new throttle scale code
+            let throttle_adjusted = input_message.throttle.abs() * self.throttle_max / 1.0;
             if input_message.throttle > 0.0 {
-                input_message.throttle = input_message.throttle.min(self.throttle_max);
+                input_message.throttle = throttle_adjusted
             } else if input_message.throttle < 0.0 {
-                input_message.throttle = input_message.throttle.max(self.throttle_min);
+                input_message.throttle = -throttle_adjusted;
             }
 
-            if input_message.throttle_left > 0.0 {
-                input_message.throttle_left = input_message.throttle_left.min(self.throttle_max);
-            } else if input_message.throttle_left < 0.0 {
-                input_message.throttle_left = input_message.throttle_left.max(self.throttle_min);
+            if self.steering_offset > 0.0 {
+                if input_message.steering >= 0.0 && input_message.steering < self.steering_offset {
+                    input_message.steering = self.steering_offset
+                }
+            } else if self.steering_offset < 0.0 {
+                if input_message.steering <= 0.0 && input_message.steering > self.steering_offset {
+                    input_message.steering = self.steering_offset
+                }
             }
-
-            if input_message.throttle_right > 0.0 {
-                input_message.throttle_right = input_message.throttle_right.min(self.throttle_max);
-            } else if input_message.throttle_right < 0.0 {
-                input_message.throttle_right = input_message.throttle_right.max(self.throttle_min);
-            }
-
-            input_message.steering = (input_message.steering + self.steering_offset).min(1.0).max(-1.0);
 
             // TODO: disabled to save cycles
             // let now = std::time::Instant::now();

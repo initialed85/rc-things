@@ -12,7 +12,7 @@ mod esp32_car;
 
 // TODO: can't remove import of esp_idf_sys + link_patches call as of 4.4
 
-const PWM_FREQ_HZ: u32 = 50;
+const PWM_FREQ_HZ: u32 = 76;
 
 fn main() -> anyhow::Result<()> {
     link_patches();
@@ -30,7 +30,7 @@ fn main() -> anyhow::Result<()> {
 
     let throttle_and_steering_timer_config = TimerConfig {
         frequency: PWM_FREQ_HZ.Hz().into(),
-        resolution: Resolution::Bits16,
+        resolution: Resolution::Bits20,
         ..Default::default()
     };
 
@@ -115,8 +115,8 @@ fn main() -> anyhow::Result<()> {
         let mut vehicle = rc_vehicle::vehicle::Vehicle::new(
             incoming_input_message_receiver,
             Box::new(pwm_car),
-            -0.20,
-            0.20,
+            -0.10,
+            0.10,
             0.0,
         );
 

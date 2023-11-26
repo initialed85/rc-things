@@ -7,32 +7,52 @@ const PERIOD_MAX_S: f32 = 0.0020;
 
 pub struct Esp32Truck {
     throttle_driver: esp_idf_hal::ledc::LedcDriver<'static>,
-    throttle_forward_enable: esp_idf_hal::gpio::PinDriver<'static, esp_idf_hal::gpio::Gpio17, esp_idf_hal::gpio::Output>,
-    throttle_reverse_enable: esp_idf_hal::gpio::PinDriver<'static, esp_idf_hal::gpio::Gpio16, esp_idf_hal::gpio::Output>,
+    throttle_forward_enable:
+        esp_idf_hal::gpio::PinDriver<'static, esp_idf_hal::gpio::Gpio17, esp_idf_hal::gpio::Output>,
+    throttle_reverse_enable:
+        esp_idf_hal::gpio::PinDriver<'static, esp_idf_hal::gpio::Gpio16, esp_idf_hal::gpio::Output>,
     throttle_max_duty: u32,
     steering_scale: f32,
     steering_translation: f32,
     steering_pwm_mid: u32,
     steering_driver: esp_idf_hal::ledc::LedcDriver<'static>,
     tray_driver: esp_idf_hal::ledc::LedcDriver<'static>,
-    tray_forward_enable: esp_idf_hal::gpio::PinDriver<'static, esp_idf_hal::gpio::Gpio26, esp_idf_hal::gpio::Output>,
-    tray_reverse_enable: esp_idf_hal::gpio::PinDriver<'static, esp_idf_hal::gpio::Gpio27, esp_idf_hal::gpio::Output>,
+    tray_forward_enable:
+        esp_idf_hal::gpio::PinDriver<'static, esp_idf_hal::gpio::Gpio26, esp_idf_hal::gpio::Output>,
+    tray_reverse_enable:
+        esp_idf_hal::gpio::PinDriver<'static, esp_idf_hal::gpio::Gpio27, esp_idf_hal::gpio::Output>,
     tray_max_duty: u32,
 }
 
 impl Esp32Truck {
     pub fn new(
         throttle_driver: esp_idf_hal::ledc::LedcDriver<'static>,
-        throttle_forward_enable: esp_idf_hal::gpio::PinDriver<'static, esp_idf_hal::gpio::Gpio17, esp_idf_hal::gpio::Output>,
-        throttle_reverse_enable: esp_idf_hal::gpio::PinDriver<'static, esp_idf_hal::gpio::Gpio16, esp_idf_hal::gpio::Output>,
+        throttle_forward_enable: esp_idf_hal::gpio::PinDriver<
+            'static,
+            esp_idf_hal::gpio::Gpio17,
+            esp_idf_hal::gpio::Output,
+        >,
+        throttle_reverse_enable: esp_idf_hal::gpio::PinDriver<
+            'static,
+            esp_idf_hal::gpio::Gpio16,
+            esp_idf_hal::gpio::Output,
+        >,
         throttle_max_duty: u32,
         steering_driver: esp_idf_hal::ledc::LedcDriver<'static>,
         steering_freq_hz: u32,
         steering_max_duty: u32,
         steering_invert: bool,
         tray_driver: esp_idf_hal::ledc::LedcDriver<'static>,
-        tray_forward_enable: esp_idf_hal::gpio::PinDriver<'static, esp_idf_hal::gpio::Gpio26, esp_idf_hal::gpio::Output>,
-        tray_reverse_enable: esp_idf_hal::gpio::PinDriver<'static, esp_idf_hal::gpio::Gpio27, esp_idf_hal::gpio::Output>,
+        tray_forward_enable: esp_idf_hal::gpio::PinDriver<
+            'static,
+            esp_idf_hal::gpio::Gpio26,
+            esp_idf_hal::gpio::Output,
+        >,
+        tray_reverse_enable: esp_idf_hal::gpio::PinDriver<
+            'static,
+            esp_idf_hal::gpio::Gpio27,
+            esp_idf_hal::gpio::Output,
+        >,
         tray_max_duty: u32,
     ) -> Self {
         assert_ne!(throttle_max_duty, 0);
@@ -43,10 +63,13 @@ impl Esp32Truck {
         let steering_freq_hz = steering_freq_hz as f32;
         let steering_max_duty = steering_max_duty as f32;
         let steering_pwm_min: f32 = PERIOD_MIN_S / (1.0 / steering_freq_hz) * steering_max_duty;
-        let steering_pwm_mid: u32 = (PERIOD_MID_S / (1.0 / steering_freq_hz) * steering_max_duty) as u32;
+        let steering_pwm_mid: u32 =
+            (PERIOD_MID_S / (1.0 / steering_freq_hz) * steering_max_duty) as u32;
         let steering_pwm_max: f32 = PERIOD_MAX_S / (1.0 / steering_freq_hz) * steering_max_duty;
-        let mut steering_scale: f32 = (steering_pwm_max - steering_pwm_min) / (INPUT_MAX - INPUT_MIN);
-        let steering_translation: f32 = steering_pwm_max - ((steering_pwm_max - steering_pwm_min) / (INPUT_MAX - INPUT_MIN));
+        let mut steering_scale: f32 =
+            (steering_pwm_max - steering_pwm_min) / (INPUT_MAX - INPUT_MIN);
+        let steering_translation: f32 =
+            steering_pwm_max - ((steering_pwm_max - steering_pwm_min) / (INPUT_MAX - INPUT_MIN));
 
         if steering_invert {
             steering_scale = -steering_scale;
@@ -70,7 +93,10 @@ impl Esp32Truck {
 }
 
 impl rc_vehicle::vehicle::InputMessageHandler for Esp32Truck {
-    fn handle_input_message(&mut self, input_message: rc_messaging::serialization::InputMessage) -> anyhow::Result<()> {
+    fn handle_input_message(
+        &mut self,
+        input_message: rc_messaging::serialization::InputMessage,
+    ) -> anyhow::Result<()> {
         let mut throttle_pwm = 0;
         let mut throttle_forward_enable = false;
         let mut throttle_reverse_enable = false;
@@ -85,7 +111,8 @@ impl rc_vehicle::vehicle::InputMessageHandler for Esp32Truck {
 
         let mut steering_pwm = self.steering_pwm_mid;
         if input_message.steering != 0.0 {
-            steering_pwm = (self.steering_scale * input_message.steering + self.steering_translation) as u32;
+            steering_pwm =
+                (self.steering_scale * input_message.steering + self.steering_translation) as u32;
         }
 
         let mut tray_pwm = 0;
