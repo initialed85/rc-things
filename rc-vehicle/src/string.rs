@@ -8,19 +8,19 @@ pub struct StringFormatTank {
 }
 
 impl StringFormatTank {
-    pub fn new(
-        swap_throttles: bool,
-        string_format_handler: Box<dyn StringFormatHandler>,
-    ) -> Self {
-        return Self {
+    pub fn new(swap_throttles: bool, string_format_handler: Box<dyn StringFormatHandler>) -> Self {
+        Self {
             swap_throttles,
             string_format_handler,
-        };
+        }
     }
 }
 
 impl crate::vehicle::InputMessageHandler for StringFormatTank {
-    fn handle_input_message(&mut self, input_message: rc_messaging::serialization::InputMessage) -> anyhow::Result<()> {
+    fn handle_input_message(
+        &mut self,
+        input_message: rc_messaging::serialization::InputMessage,
+    ) -> anyhow::Result<()> {
         let throttle_left;
         let throttle_right;
 
@@ -32,11 +32,15 @@ impl crate::vehicle::InputMessageHandler for StringFormatTank {
             throttle_right = input_message.throttle_left;
         }
 
-        println!("throttle_left={:?}, throttle_right={:?} from input_message={:?}", throttle_left, throttle_right, input_message);
+        println!(
+            "throttle_left={:?}, throttle_right={:?} from input_message={:?}",
+            throttle_left, throttle_right, input_message
+        );
 
-        self.string_format_handler.set_throttles(throttle_left, throttle_right)?;
+        self.string_format_handler
+            .set_throttles(throttle_left, throttle_right)?;
 
-        return Ok(());
+        Ok(())
     }
 }
 
@@ -60,14 +64,11 @@ mod tests {
 
             input_states.push((throttle_left, throttle_right));
 
-            return Ok(());
+            Ok(())
         }
     }
 
-    fn get_test_resources() -> (
-        impl Fn() -> Vec<(f32, f32)>,
-        StringFormatTank,
-    ) {
+    fn get_test_resources() -> (impl Fn() -> Vec<(f32, f32)>, StringFormatTank) {
         let shareable_input_states = std::sync::Arc::new(std::sync::Mutex::new(vec![]));
 
         let closure_input_states = std::sync::Arc::clone(&shareable_input_states);
@@ -76,23 +77,20 @@ mod tests {
             let mut input_states = closure_input_states.lock().unwrap();
             let cloned_input_states = input_states.clone();
             input_states.clear();
-            return cloned_input_states;
+            cloned_input_states
         };
 
         let test_string_car = TestStringCar {
-            input_states: Arc::clone(&shareable_input_states)
+            input_states: Arc::clone(&shareable_input_states),
         };
 
-        let string_format_tank = StringFormatTank::new(
-            false,
-            Box::new(test_string_car),
-        );
+        let string_format_tank = StringFormatTank::new(false, Box::new(test_string_car));
 
-        return (drain_input_states, string_format_tank);
+        (drain_input_states, string_format_tank)
     }
 
     fn get_input_message(throttle_left: f32, throttle_right: f32) -> InputMessage {
-        return rc_messaging::serialization::InputMessage {
+        rc_messaging::serialization::InputMessage {
             throttle: 0.0,
             steering: 0.0,
             throttle_left,
@@ -102,7 +100,7 @@ mod tests {
             mode_left: false,
             mode_right: false,
             handbrake: false,
-        };
+        }
     }
 
     #[test]
@@ -124,6 +122,6 @@ mod tests {
         let last_input_state = input_states.last().unwrap();
         assert_eq!(last_input_state, &(-1.0, -1.0));
 
-        return Ok(());
+        Ok(())
     }
 }

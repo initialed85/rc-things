@@ -15,19 +15,18 @@ pub struct InputMessage {
 }
 
 pub fn serialize<T>(t: T) -> Result<Vec<u8>, rmp_serde::encode::Error>
-    where
-        T: serde::ser::Serialize,
+where
+    T: serde::ser::Serialize,
 {
-    return rmp_serde::to_vec(&t);
+    rmp_serde::to_vec(&t)
 }
 
 pub fn deserialize<T>(message: Vec<u8>) -> Result<T, rmp_serde::decode::Error>
-    where
-        T: serde::de::DeserializeOwned,
+where
+    T: serde::de::DeserializeOwned,
 {
-    return rmp_serde::from_slice::<T>(message.as_slice());
+    rmp_serde::from_slice::<T>(message.as_slice())
 }
-
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right
@@ -57,6 +56,6 @@ mod tests {
 
         assert_eq!(input_message, deserialized_input_message);
 
-        return Ok(());
+        Ok(())
     }
 }

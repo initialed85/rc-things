@@ -27,13 +27,13 @@ fn main() -> anyhow::Result<()> {
     //
 
     let mut led = PinDriver::output(peripherals.pins.gpio2)?;
-    let mut throttle_forward_enable = PinDriver::output(peripherals.pins.gpio17)?;
-    let mut throttle_reverse_enable = PinDriver::output(peripherals.pins.gpio16)?;
-    let mut tray_forward_enable = PinDriver::output(peripherals.pins.gpio26)?;
-    let mut tray_reverse_enable = PinDriver::output(peripherals.pins.gpio27)?;
+    let throttle_forward_enable = PinDriver::output(peripherals.pins.gpio17)?;
+    let throttle_reverse_enable = PinDriver::output(peripherals.pins.gpio16)?;
+    let tray_forward_enable = PinDriver::output(peripherals.pins.gpio26)?;
+    let tray_reverse_enable = PinDriver::output(peripherals.pins.gpio27)?;
 
     let throttle_and_steering_and_tray_timer_config = TimerConfig {
-        frequency: PWM_FREQ_HZ.Hz().into(),
+        frequency: PWM_FREQ_HZ.Hz(),
         resolution: Resolution::Bits20,
         ..Default::default()
     };
@@ -105,12 +105,13 @@ fn main() -> anyhow::Result<()> {
             )?;
 
             server.run()?;
-            return Ok(());
+
+            Ok(())
         })?;
 
-    let throttle_max_duty: u32 = throttle_driver.get_max_duty().into();
-    let steering_max_duty: u32 = steering_driver.get_max_duty().into();
-    let tray_max_duty: u32 = tray_driver.get_max_duty().into();
+    let throttle_max_duty: u32 = throttle_driver.get_max_duty();
+    let steering_max_duty: u32 = steering_driver.get_max_duty();
+    let tray_max_duty: u32 = tray_driver.get_max_duty();
 
     // run a thread to handle Esp32Car -> PwmCar -> Vehicle
     std::thread::Builder::new()
@@ -144,7 +145,7 @@ fn main() -> anyhow::Result<()> {
 
             vehicle.run()?;
 
-            return Ok(());
+            Ok(())
         })?;
 
     // main loop just blinks the led

@@ -6,24 +6,19 @@ fn main() -> anyhow::Result<()> {
     //
 
     let uart = std::sync::Arc::new(std::sync::Mutex::new(
-        rppal::uart::Uart::with_path(
-            "/dev/ttyAMA0",
-            115200,
-            rppal::uart::Parity::None,
-            8,
-            1,
-        ).unwrap(),
+        rppal::uart::Uart::with_path("/dev/ttyAMA0", 115200, rppal::uart::Parity::None, 8, 1)
+            .unwrap(),
     ));
 
     //
     // vehicle control
     //
 
-    let (incoming_input_message_sender, incoming_input_message_receiver) = std::sync::mpsc::channel();
+    let (incoming_input_message_sender, incoming_input_message_receiver) =
+        std::sync::mpsc::channel();
 
     // run a thread to handle Server
     std::thread::spawn(move || -> anyhow::Result<()> {
-
         // Server converts UDP datagrams to InputMessages
         let server = rc_messaging::transport::Server::new(
             format!("{}:{}", "0.0.0.0", 13337).parse()?,
@@ -32,21 +27,16 @@ fn main() -> anyhow::Result<()> {
 
         server.run()?;
 
-        return Ok(());
+        Ok(())
     });
 
     // run a thread to handle PiTank -> StringCar -> Vehicle
     std::thread::spawn(move || -> anyhow::Result<()> {
         // PiTank converts set_throttles calls to serial writes
-        let pi_tank = pi_tank::PiTank::new(
-            uart,
-        );
+        let pi_tank = pi_tank::PiTank::new(uart);
 
         // StringFormatTank converts InputMessages to set_throttles calls
-        let string_format_tank = rc_vehicle::string::StringFormatTank::new(
-            true,
-            Box::new(pi_tank),
-        );
+        let string_format_tank = rc_vehicle::string::StringFormatTank::new(true, Box::new(pi_tank));
 
         // Vehicle rate limits InputMessages / sets safe InputMessage as applicable
         let mut vehicle = rc_vehicle::vehicle::Vehicle::new(
@@ -59,9 +49,8 @@ fn main() -> anyhow::Result<()> {
 
         vehicle.run()?;
 
-        return Ok(());
+        Ok(())
     });
-
 
     // main loop does nothing
     loop {

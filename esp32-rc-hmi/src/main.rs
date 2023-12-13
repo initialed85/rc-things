@@ -1,14 +1,11 @@
 use anyhow::Context;
 use embedded_svc::wifi::{AuthMethod, ClientConfiguration, Configuration};
-use esp_idf_hal::adc::*;
 use esp_idf_hal::adc::config::Config;
+use esp_idf_hal::adc::*;
 use esp_idf_hal::gpio::*;
 use esp_idf_hal::peripherals::Peripherals;
-use esp_idf_hal::prelude::*;
-use esp_idf_hal::prelude::*;
-use esp_idf_svc::{eventloop::EspSystemEventLoop, nvs::EspDefaultNvsPartition, wifi::EspWifi};
 use esp_idf_svc::log::EspLogger;
-use esp_idf_sys::*;
+use esp_idf_svc::{eventloop::EspSystemEventLoop, nvs::EspDefaultNvsPartition, wifi::EspWifi};
 use esp_idf_sys::*;
 
 // TODO: can't remove import of esp_idf_sys + link_patches call as of 4.4
@@ -28,8 +25,10 @@ fn main() -> anyhow::Result<()> {
     let mut led = PinDriver::output(peripherals.pins.gpio2)?;
 
     let mut adc = AdcDriver::new(peripherals.adc1, &Config::new().calibration(true))?;
-    let mut steering_adc_pin: AdcChannelDriver<{ attenuation::DB_11 }, _> = AdcChannelDriver::new(peripherals.pins.gpio36)?;
-    let mut throttle_adc_pin: AdcChannelDriver<{ attenuation::DB_11 }, _> = AdcChannelDriver::new(peripherals.pins.gpio39)?;
+    let mut steering_adc_pin: AdcChannelDriver<{ attenuation::DB_11 }, _> =
+        AdcChannelDriver::new(peripherals.pins.gpio36)?;
+    let mut throttle_adc_pin: AdcChannelDriver<{ attenuation::DB_11 }, _> =
+        AdcChannelDriver::new(peripherals.pins.gpio39)?;
 
     //
     // wifi
@@ -72,64 +71,72 @@ fn main() -> anyhow::Result<()> {
     //
 
     // Client converts InputMessages to UDP datagrams
-    let client = rc_messaging::transport::Client::new(
-        format!("{}:{}", "192.168.71.1", 13337).parse()?,
-    )?;
+    let client =
+        rc_messaging::transport::Client::new(format!("{}:{}", "192.168.71.1", 13337).parse()?)?;
 
-    let outgoing_input_message_sender: std::sync::mpsc::Sender<rc_messaging::serialization::InputMessage> = client.get_outgoing_input_message_sender();
+    let outgoing_input_message_sender: std::sync::mpsc::Sender<
+        rc_messaging::serialization::InputMessage,
+    > = client.get_outgoing_input_message_sender();
 
     // run a thread to handle Client
     std::thread::Builder::new()
-        .stack_size(32768).spawn(move || -> anyhow::Result<()> {
-        client.run()?;
+        .stack_size(32768)
+        .spawn(move || -> anyhow::Result<()> {
+            client.run()?;
 
-        return Ok(());
-    })?;
+            return Ok(());
+        })?;
 
     // TODO: move this loop into an abstraction like the other stuff
     // run a thread to handle input
     std::thread::Builder::new()
-        .stack_size(32768).spawn(move || -> anyhow::Result<()> {
-        loop {
-            // 142 (forward) -> 1650 (neutral) -> 2580 (reverse)
-            let raw_throttle = adc.read(&mut throttle_adc_pin)?;
+        .stack_size(32768)
+        .spawn(move || -> anyhow::Result<()> {
+            loop {
+                // 142 (forward) -> 1650 (neutral) -> 2580 (reverse)
+                let raw_throttle = adc.read(&mut throttle_adc_pin)?;
 
-            // 197 (left) -> 1830 (center) -> 3134 (right)
-            let raw_steering = adc.read(&mut steering_adc_pin)?;
+                // 197 (left) -> 1830 (center) -> 3134 (right)
+                let raw_steering = adc.read(&mut steering_adc_pin)?;
 
-            let mut throttle: f32 = raw_throttle.into();
-            throttle = -(((throttle - 142.0) / (3134.0 - 142.0)) * 2.0 - 1.0); // rough translate and scale
-            throttle += 0.0075; // adjust out remaining error
-            if throttle >= -0.01 && throttle <= 0.01 { // apply deadzone
-                throttle = 0.0;
+                let mut throttle: f32 = raw_throttle.into();
+                throttle = -(((throttle - 142.0) / (3134.0 - 142.0)) * 2.0 - 1.0); // rough translate and scale
+                throttle += 0.0075; // adjust out remaining error
+                if (-0.01..=0.01).contains(&throttle) {
+                    // apply deadzone
+                    throttle = 0.0;
+                }
+
+                let mut steering: f32 = raw_steering.into();
+                steering = ((steering - 142.0) / (3134.0 - 142.0)) * 2.0 - 1.0; // rough translate and scale
+                steering -= 0.129; // adjust out remaining error
+                if (-0.01..=0.01).contains(&steering) {
+                    // apply deadzone
+                    steering = 0.0;
+                }
+
+                let input_message = rc_messaging::serialization::InputMessage {
+                    throttle,
+                    steering,
+                    throttle_left: 0.0,
+                    throttle_right: 0.0,
+                    mode_up: false,
+                    mode_down: false,
+                    mode_left: false,
+                    mode_right: false,
+                    handbrake: false,
+                };
+
+                println!(
+                    "throttle: {:?}, steering: {:?}, {:?}",
+                    raw_throttle, raw_steering, input_message
+                );
+
+                outgoing_input_message_sender.send(input_message)?;
+
+                std::thread::sleep(std::time::Duration::from_millis(50));
             }
-
-            let mut steering: f32 = raw_steering.into();
-            steering = ((steering - 142.0) / (3134.0 - 142.0)) * 2.0 - 1.0; // rough translate and scale
-            steering -= 0.129; // adjust out remaining error
-            if steering >= -0.01 && steering <= 0.01 { // apply deadzone
-                steering = 0.0;
-            }
-
-            let input_message = rc_messaging::serialization::InputMessage {
-                throttle,
-                steering,
-                throttle_left: 0.0,
-                throttle_right: 0.0,
-                mode_up: false,
-                mode_down: false,
-                mode_left: false,
-                mode_right: false,
-                handbrake: false,
-            };
-
-            println!("throttle: {:?}, steering: {:?}, {:?}", raw_throttle, raw_steering, input_message);
-
-            outgoing_input_message_sender.send(input_message)?;
-
-            std::thread::sleep(std::time::Duration::from_millis(50));
-        }
-    })?;
+        })?;
 
     // main loop just blinks the led
     loop {

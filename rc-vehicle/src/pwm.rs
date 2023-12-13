@@ -36,10 +36,13 @@ impl PwmCar {
         let throttle_freq_hz = throttle_freq_hz as f32;
         let throttle_max_duty = throttle_max_duty as f32;
         let throttle_pwm_min: f32 = PERIOD_MIN_S / (1.0 / throttle_freq_hz) * throttle_max_duty;
-        let throttle_pwm_mid: u32 = (PERIOD_MID_S / (1.0 / throttle_freq_hz) * throttle_max_duty) as u32;
+        let throttle_pwm_mid: u32 =
+            (PERIOD_MID_S / (1.0 / throttle_freq_hz) * throttle_max_duty) as u32;
         let throttle_pwm_max: f32 = PERIOD_MAX_S / (1.0 / throttle_freq_hz) * throttle_max_duty;
-        let mut throttle_scale: f32 = (throttle_pwm_max - throttle_pwm_min) / (INPUT_MAX - INPUT_MIN);
-        let throttle_translation: f32 = throttle_pwm_max - ((throttle_pwm_max - throttle_pwm_min) / (INPUT_MAX - INPUT_MIN));
+        let mut throttle_scale: f32 =
+            (throttle_pwm_max - throttle_pwm_min) / (INPUT_MAX - INPUT_MIN);
+        let throttle_translation: f32 =
+            throttle_pwm_max - ((throttle_pwm_max - throttle_pwm_min) / (INPUT_MAX - INPUT_MIN));
 
         if throttle_invert {
             throttle_scale = -throttle_scale;
@@ -62,10 +65,13 @@ impl PwmCar {
         let steering_freq_hz = steering_freq_hz as f32;
         let steering_max_duty = steering_max_duty as f32;
         let steering_pwm_min: f32 = PERIOD_MIN_S / (1.0 / steering_freq_hz) * steering_max_duty;
-        let steering_pwm_mid: u32 = (PERIOD_MID_S / (1.0 / steering_freq_hz) * steering_max_duty) as u32;
+        let steering_pwm_mid: u32 =
+            (PERIOD_MID_S / (1.0 / steering_freq_hz) * steering_max_duty) as u32;
         let steering_pwm_max: f32 = PERIOD_MAX_S / (1.0 / steering_freq_hz) * steering_max_duty;
-        let mut steering_scale: f32 = (steering_pwm_max - steering_pwm_min) / (INPUT_MAX - INPUT_MIN);
-        let steering_translation: f32 = steering_pwm_max - ((steering_pwm_max - steering_pwm_min) / (INPUT_MAX - INPUT_MIN));
+        let mut steering_scale: f32 =
+            (steering_pwm_max - steering_pwm_min) / (INPUT_MAX - INPUT_MIN);
+        let steering_translation: f32 =
+            steering_pwm_max - ((steering_pwm_max - steering_pwm_min) / (INPUT_MAX - INPUT_MIN));
 
         if steering_invert {
             steering_scale = -steering_scale;
@@ -82,37 +88,45 @@ impl PwmCar {
             steering_translation,
         );
 
-        return Self {
+        Self {
             // TODO: not sure if this is correct or if my wiring is incorrect
             throttle_scale,
             throttle_translation,
-            throttle_pwm_mid: throttle_pwm_mid as u32,
+            throttle_pwm_mid,
             steering_scale,
             steering_translation,
-            steering_pwm_mid: steering_pwm_mid as u32,
+            steering_pwm_mid,
             pwm_set_handler,
-        };
+        }
     }
 }
 
 impl crate::vehicle::InputMessageHandler for PwmCar {
-    fn handle_input_message(&mut self, input_message: rc_messaging::serialization::InputMessage) -> anyhow::Result<()> {
+    fn handle_input_message(
+        &mut self,
+        input_message: rc_messaging::serialization::InputMessage,
+    ) -> anyhow::Result<()> {
         let mut throttle_pwm = self.throttle_pwm_mid;
         if input_message.throttle != 0.0 {
-            throttle_pwm = (self.throttle_scale * input_message.throttle + self.throttle_translation) as u32;
+            throttle_pwm =
+                (self.throttle_scale * input_message.throttle + self.throttle_translation) as u32;
         }
 
         let mut steering_pwm = self.steering_pwm_mid;
         if input_message.steering != 0.0 {
-            steering_pwm = (self.steering_scale * input_message.steering + self.steering_translation) as u32;
+            steering_pwm =
+                (self.steering_scale * input_message.steering + self.steering_translation) as u32;
         }
 
-        println!("throttle_pwm={:?}, steering_pwm={:?} from input_message={:?}", throttle_pwm, steering_pwm, input_message);
+        println!(
+            "throttle_pwm={:?}, steering_pwm={:?} from input_message={:?}",
+            throttle_pwm, steering_pwm, input_message
+        );
 
         self.pwm_set_handler.set_throttle(throttle_pwm)?;
         self.pwm_set_handler.set_steering(steering_pwm)?;
 
-        return Ok(());
+        Ok(())
     }
 }
 
@@ -142,7 +156,7 @@ mod tests {
 
             input_states.push((duty, steering));
 
-            return Ok(());
+            Ok(())
         }
 
         fn set_steering(&mut self, duty: u32) -> anyhow::Result<()> {
@@ -156,17 +170,11 @@ mod tests {
 
             input_states.push((throttle, duty));
 
-            return Ok(());
+            Ok(())
         }
     }
 
-    fn get_test_resources(
-        freq: u32,
-        max_duty: u32,
-    ) -> (
-        impl Fn() -> Vec<(u32, u32)>,
-        PwmCar,
-    ) {
+    fn get_test_resources(freq: u32, max_duty: u32) -> (impl Fn() -> Vec<(u32, u32)>, PwmCar) {
         let shareable_input_states = std::sync::Arc::new(std::sync::Mutex::new(vec![]));
 
         let closure_input_states = std::sync::Arc::clone(&shareable_input_states);
@@ -175,11 +183,11 @@ mod tests {
             let mut input_states = closure_input_states.lock().unwrap();
             let cloned_input_states = input_states.clone();
             input_states.clear();
-            return cloned_input_states;
+            cloned_input_states
         };
 
         let test_pwm_car = TestPwmCar {
-            input_states: Arc::clone(&shareable_input_states)
+            input_states: Arc::clone(&shareable_input_states),
         };
 
         let pwm_car = PwmCar::new(
@@ -192,11 +200,11 @@ mod tests {
             Box::new(test_pwm_car),
         );
 
-        return (drain_input_states, pwm_car);
+        (drain_input_states, pwm_car)
     }
 
     fn get_input_message(throttle: f32, steering: f32) -> InputMessage {
-        return rc_messaging::serialization::InputMessage {
+        rc_messaging::serialization::InputMessage {
             throttle,
             steering,
             throttle_left: 0.0,
@@ -206,7 +214,7 @@ mod tests {
             mode_left: false,
             mode_right: false,
             handbrake: false,
-        };
+        }
     }
 
     #[test]
@@ -228,6 +236,6 @@ mod tests {
         let last_input_state = input_states.last().unwrap();
         assert_eq!(last_input_state, &(3276, 3276));
 
-        return Ok(());
+        Ok(())
     }
 }

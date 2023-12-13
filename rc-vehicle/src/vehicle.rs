@@ -3,14 +3,18 @@
 // const MESSAGE_EARLY: std::time::Duration = std::time::Duration::from_millis((1.0 / MESSAGE_EARLY_HZ * 1000.0) as u64);
 
 const MESSAGE_TIMEOUT_HZ: f64 = 5.0;
-const MESSAGE_TIMEOUT: std::time::Duration = std::time::Duration::from_millis((1.0 / MESSAGE_TIMEOUT_HZ * 1000.0) as u64);
+const MESSAGE_TIMEOUT: std::time::Duration =
+    std::time::Duration::from_millis((1.0 / MESSAGE_TIMEOUT_HZ * 1000.0) as u64);
 
 pub trait InputMessageHandler {
-    fn handle_input_message(&mut self, input_message: rc_messaging::serialization::InputMessage) -> anyhow::Result<()>;
+    fn handle_input_message(
+        &mut self,
+        input_message: rc_messaging::serialization::InputMessage,
+    ) -> anyhow::Result<()>;
 }
 
 fn get_safe_input_message() -> rc_messaging::serialization::InputMessage {
-    return rc_messaging::serialization::InputMessage {
+    rc_messaging::serialization::InputMessage {
         throttle: 0.0,
         steering: 0.0,
         throttle_left: 0.0,
@@ -20,11 +24,12 @@ fn get_safe_input_message() -> rc_messaging::serialization::InputMessage {
         mode_left: false,
         mode_right: false,
         handbrake: true,
-    };
+    }
 }
 
 pub struct Vehicle {
-    incoming_input_message_receiver: std::sync::mpsc::Receiver<rc_messaging::serialization::InputMessage>,
+    incoming_input_message_receiver:
+        std::sync::mpsc::Receiver<rc_messaging::serialization::InputMessage>,
     input_message_handler: Box<dyn InputMessageHandler>,
     closed: std::sync::Arc<std::sync::Mutex<bool>>,
     last_input_message: Option<rc_messaging::serialization::InputMessage>,
@@ -35,7 +40,9 @@ pub struct Vehicle {
 
 impl Vehicle {
     pub fn new(
-        incoming_input_message_receiver: std::sync::mpsc::Receiver<rc_messaging::serialization::InputMessage>,
+        incoming_input_message_receiver: std::sync::mpsc::Receiver<
+            rc_messaging::serialization::InputMessage,
+        >,
         input_message_handler: Box<dyn InputMessageHandler>,
         starting_throttle_min: f32,
         starting_throttle_max: f32,
@@ -55,18 +62,20 @@ impl Vehicle {
     pub fn get_closer(&self) -> impl Fn() {
         let closed = std::sync::Arc::clone(&self.closed);
         return move || {
-            {
-                let mut closed = closed.lock().unwrap();
-                *closed = true;
-            }
+            let mut closed = closed.lock().unwrap();
+            *closed = true;
         };
     }
 
-    fn handle_input_message(&mut self, input_message: rc_messaging::serialization::InputMessage) -> anyhow::Result<()> {
-        self.input_message_handler.handle_input_message(input_message.clone())?;
+    fn handle_input_message(
+        &mut self,
+        input_message: rc_messaging::serialization::InputMessage,
+    ) -> anyhow::Result<()> {
+        self.input_message_handler
+            .handle_input_message(input_message.clone())?;
         self.last_input_message = Some(input_message);
 
-        return Ok(());
+        Ok(())
     }
 
     pub fn run(&mut self) -> anyhow::Result<()> {
@@ -76,27 +85,36 @@ impl Vehicle {
         // let mut last_message_time = std::time::Instant::now();
 
         loop {
-            let closed = {
-                *self.closed.lock().unwrap()
-            };
+            let closed = { *self.closed.lock().unwrap() };
 
             if closed {
-                println!("closed={:?}; sending safe input_message={:?}", closed, safe_input_message);
+                println!(
+                    "closed={:?}; sending safe input_message={:?}",
+                    closed, safe_input_message
+                );
                 _ = self.handle_input_message(safe_input_message.clone());
                 break;
             }
 
-            let recv_timeout_result = self.incoming_input_message_receiver.recv_timeout(MESSAGE_TIMEOUT);
+            let recv_timeout_result = self
+                .incoming_input_message_receiver
+                .recv_timeout(MESSAGE_TIMEOUT);
             if recv_timeout_result.is_err() {
                 let err = recv_timeout_result.err().unwrap();
                 _ = self.handle_input_message(safe_input_message.clone());
                 match err {
                     std::sync::mpsc::RecvTimeoutError::Timeout => {
-                        println!("err={:?}, MESSAGE_TIMEOUT={:?}, sending safe input_message={:?}", err, MESSAGE_TIMEOUT, safe_input_message);
+                        println!(
+                            "err={:?}, MESSAGE_TIMEOUT={:?}, sending safe input_message={:?}",
+                            err, MESSAGE_TIMEOUT, safe_input_message
+                        );
                         continue;
                     }
                     std::sync::mpsc::RecvTimeoutError::Disconnected => {
-                        println!("err={:?}, sending safe input_message={:?}", err, safe_input_message);
+                        println!(
+                            "err={:?}, sending safe input_message={:?}",
+                            err, safe_input_message
+                        );
                         break;
                     }
                 }
@@ -104,7 +122,10 @@ impl Vehicle {
 
             let mut input_message = recv_timeout_result?;
 
-            if input_message.mode_up && (self.last_input_message.is_none() || !self.last_input_message.as_ref().unwrap().mode_up) {
+            if input_message.mode_up
+                && (self.last_input_message.is_none()
+                    || !self.last_input_message.as_ref().unwrap().mode_up)
+            {
                 self.throttle_max += 0.10;
                 self.throttle_max = self.throttle_max.min(1.0);
                 self.throttle_max = self.throttle_max.max(0.0);
@@ -114,7 +135,10 @@ impl Vehicle {
                 self.throttle_min = self.throttle_min.min(0.0);
             }
 
-            if input_message.mode_down && (self.last_input_message.is_none() || !self.last_input_message.as_ref().unwrap().mode_down) {
+            if input_message.mode_down
+                && (self.last_input_message.is_none()
+                    || !self.last_input_message.as_ref().unwrap().mode_down)
+            {
                 self.throttle_max -= 0.10;
                 self.throttle_max = self.throttle_max.min(1.0);
                 self.throttle_max = self.throttle_max.max(0.0);
@@ -167,10 +191,11 @@ impl Vehicle {
                 if input_message.steering >= 0.0 && input_message.steering < self.steering_offset {
                     input_message.steering = self.steering_offset
                 }
-            } else if self.steering_offset < 0.0 {
-                if input_message.steering <= 0.0 && input_message.steering > self.steering_offset {
-                    input_message.steering = self.steering_offset
-                }
+            } else if self.steering_offset < 0.0
+                && input_message.steering <= 0.0
+                && input_message.steering > self.steering_offset
+            {
+                input_message.steering = self.steering_offset
             }
 
             // TODO: disabled to save cycles
@@ -185,7 +210,7 @@ impl Vehicle {
             self.handle_input_message(input_message)?;
         }
 
-        return Ok(());
+        Ok(())
     }
 }
 
@@ -194,27 +219,34 @@ mod tests {
     use super::*;
 
     const MESSAGE_INTERVAL_HZ: f64 = 20.0;
-    const MESSAGE_INTERVAL: std::time::Duration = std::time::Duration::from_millis((1.0 / MESSAGE_INTERVAL_HZ * 1000.0) as u64);
+    const MESSAGE_INTERVAL: std::time::Duration =
+        std::time::Duration::from_millis((1.0 / MESSAGE_INTERVAL_HZ * 1000.0) as u64);
 
     struct TestVehicle {
-        input_messages: std::sync::Arc<std::sync::Mutex<Vec<rc_messaging::serialization::InputMessage>>>,
+        input_messages:
+            std::sync::Arc<std::sync::Mutex<Vec<rc_messaging::serialization::InputMessage>>>,
     }
 
     impl InputMessageHandler for TestVehicle {
-        fn handle_input_message(&mut self, input_message: rc_messaging::serialization::InputMessage) -> anyhow::Result<()> {
+        fn handle_input_message(
+            &mut self,
+            input_message: rc_messaging::serialization::InputMessage,
+        ) -> anyhow::Result<()> {
             {
                 let mut input_messages = self.input_messages.lock().unwrap();
                 input_messages.push(input_message.clone());
             }
 
-            return Ok(());
+            Ok(())
         }
     }
 
     fn get_test_resources() -> (
         std::sync::mpsc::Sender<rc_messaging::serialization::InputMessage>,
         impl Fn() -> Vec<rc_messaging::serialization::InputMessage>,
-        impl Fn(), std::thread::JoinHandle<()>, rc_messaging::serialization::InputMessage,
+        impl Fn(),
+        std::thread::JoinHandle<()>,
+        rc_messaging::serialization::InputMessage,
     ) {
         let (sender, receiver) = std::sync::mpsc::channel();
 
@@ -229,7 +261,7 @@ mod tests {
                 println!("{:?}", x);
             }
             input_messages.clear();
-            return cloned_input_messages;
+            cloned_input_messages
         };
 
         let test_vehicle = TestVehicle {
@@ -259,18 +291,25 @@ mod tests {
 
         let vehicle_closer = vehicle_closer_receiver.recv().unwrap();
 
-        return (sender, drain_input_messages, vehicle_closer, vehicle_handle, input_message);
+        (
+            sender,
+            drain_input_messages,
+            vehicle_closer,
+            vehicle_handle,
+            input_message,
+        )
     }
 
     #[test]
     fn happy_path() -> anyhow::Result<()> {
-        let (sender, drain_input_messages, vehicle_closer, vehicle_handle, mut input_message) = get_test_resources();
+        let (sender, drain_input_messages, vehicle_closer, vehicle_handle, mut input_message) =
+            get_test_resources();
 
         std::thread::sleep(MESSAGE_INTERVAL);
         sender.send(input_message.clone()).unwrap();
         std::thread::sleep(MESSAGE_INTERVAL);
         let input_messages = drain_input_messages();
-        assert_eq!(input_messages.contains(&input_message), true);
+        assert!(input_messages.contains(&input_message));
 
         let mut expected_input_message = input_message.clone();
         expected_input_message.throttle = 0.8;
@@ -283,7 +322,7 @@ mod tests {
         sender.send(input_message.clone()).unwrap();
         std::thread::sleep(MESSAGE_INTERVAL);
         let input_messages = drain_input_messages();
-        assert_eq!(input_messages.contains(&expected_input_message), true);
+        assert!(input_messages.contains(&expected_input_message));
 
         let mut expected_input_message = input_message.clone();
         expected_input_message.throttle = 0.8;
@@ -297,7 +336,7 @@ mod tests {
         sender.send(input_message.clone()).unwrap();
         std::thread::sleep(MESSAGE_INTERVAL);
         let input_messages = drain_input_messages();
-        assert_eq!(input_messages.contains(&expected_input_message), true);
+        assert!(input_messages.contains(&expected_input_message));
 
         let mut expected_input_message = input_message.clone();
         expected_input_message.throttle = 0.8;
@@ -315,7 +354,7 @@ mod tests {
         }
 
         let input_messages = drain_input_messages();
-        assert_eq!(input_messages.contains(&expected_input_message), true);
+        assert!(input_messages.contains(&expected_input_message));
 
         let mut expected_input_message = input_message.clone();
         expected_input_message.throttle = 0.8;
@@ -333,11 +372,11 @@ mod tests {
         }
 
         let input_messages = drain_input_messages();
-        assert_eq!(input_messages.contains(&expected_input_message), true);
+        assert!(input_messages.contains(&expected_input_message));
 
         vehicle_closer();
         vehicle_handle.join().unwrap();
-        return Ok(());
+        Ok(())
     }
 
     // TODO: disabled to save cycles
@@ -360,7 +399,8 @@ mod tests {
 
     #[test]
     fn too_late() -> anyhow::Result<()> {
-        let (_, drain_input_messages, vehicle_closer, vehicle_handle, input_message) = get_test_resources();
+        let (_, drain_input_messages, vehicle_closer, vehicle_handle, input_message) =
+            get_test_resources();
 
         // this will cause a timeout
         std::thread::sleep(MESSAGE_TIMEOUT);
@@ -368,10 +408,10 @@ mod tests {
         std::thread::sleep(MESSAGE_INTERVAL);
         let input_messages = drain_input_messages();
 
-        assert_eq!(input_messages.contains(&input_message), false);
+        assert!(!input_messages.contains(&input_message));
 
         vehicle_closer();
         vehicle_handle.join().unwrap();
-        return Ok(());
+        Ok(())
     }
 }

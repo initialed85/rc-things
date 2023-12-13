@@ -75,7 +75,7 @@ impl Esp32Truck {
             steering_scale = -steering_scale;
         }
 
-        return Self {
+        Self {
             throttle_driver,
             throttle_forward_enable,
             throttle_reverse_enable,
@@ -83,12 +83,12 @@ impl Esp32Truck {
             steering_driver,
             steering_scale,
             steering_translation,
-            steering_pwm_mid: steering_pwm_mid as u32,
+            steering_pwm_mid,
             tray_driver,
             tray_forward_enable,
             tray_reverse_enable,
             tray_max_duty,
-        };
+        }
     }
 }
 
@@ -168,6 +168,6 @@ impl rc_vehicle::vehicle::InputMessageHandler for Esp32Truck {
             self.tray_reverse_enable.set_low()?;
         }
 
-        return Ok(());
+        Ok(())
     }
 }

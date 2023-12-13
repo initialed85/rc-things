@@ -19,7 +19,7 @@ use bevy::time::TimePlugin;
 use bevy::winit::WinitPlugin;
 use iyes_loopless::prelude::AppLooplessFixedTimestepExt;
 
-use rc_messaging::serialization::{InputMessage, serialize};
+use rc_messaging::serialization::{serialize, InputMessage};
 
 pub const TITLE: &str = "car-client";
 pub const BOUNDS: Vec2 = Vec2::new(640.0, 400.0);
@@ -33,7 +33,7 @@ pub fn get_socket_addr_from_env() -> SocketAddr {
     let port = env::var("PORT").unwrap();
     let socket_addr: SocketAddr = format!("{}:{}", host, port).parse().unwrap();
 
-    return socket_addr;
+    socket_addr
 }
 
 #[derive(Resource, Debug)]
@@ -136,22 +136,22 @@ fn main() {
         level: log::Level::INFO,
     });
     app.add_plugin(CorePlugin::default());
-    app.add_plugin(TimePlugin::default());
-    app.add_plugin(TransformPlugin::default());
-    app.add_plugin(HierarchyPlugin::default());
-    app.add_plugin(DiagnosticsPlugin::default());
-    app.add_plugin(InputPlugin::default());
+    app.add_plugin(TimePlugin);
+    app.add_plugin(TransformPlugin);
+    app.add_plugin(HierarchyPlugin);
+    app.add_plugin(DiagnosticsPlugin);
+    app.add_plugin(InputPlugin);
     app.add_plugin(WindowPlugin::default());
-    app.add_plugin(WinitPlugin::default());
-    app.add_plugin(GilrsPlugin::default());
+    app.add_plugin(WinitPlugin);
+    app.add_plugin(GilrsPlugin);
 
     app.add_fixed_timestep(
-        Duration::from_secs_f64(LOCAL_TIME_STEP as f64),
+        Duration::from_secs_f64(LOCAL_TIME_STEP),
         LOCAL_TIME_STEP_NAME,
     );
 
     app.add_fixed_timestep(
-        Duration::from_secs_f64(NETWORK_TIME_STEP as f64),
+        Duration::from_secs_f64(NETWORK_TIME_STEP),
         NETWORK_TIME_STEP_NAME,
     );
 
@@ -177,8 +177,8 @@ fn main() {
     } else {
         "[::]:0"
     }
-        .parse()
-        .unwrap();
+    .parse()
+    .unwrap();
 
     let socket = UdpSocket::bind(local_addr).unwrap();
     socket.connect(remote_addr).unwrap();

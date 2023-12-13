@@ -1,7 +1,8 @@
 const BUF_SIZE: usize = 1024;
 const MESSAGE_TIMEOUT_HZ: f64 = 20.0;
 
-const MESSAGE_TIMEOUT: std::time::Duration = std::time::Duration::from_millis((1.0 / MESSAGE_TIMEOUT_HZ * 1000.0) as u64);
+const MESSAGE_TIMEOUT: std::time::Duration =
+    std::time::Duration::from_millis((1.0 / MESSAGE_TIMEOUT_HZ * 1000.0) as u64);
 const READ_TIMEOUT: std::time::Duration = MESSAGE_TIMEOUT;
 const WRITE_TIMEOUT: std::time::Duration = MESSAGE_TIMEOUT;
 
@@ -10,11 +11,14 @@ fn get_socket(bind_address: std::net::SocketAddr) -> Result<std::net::UdpSocket,
     socket.set_read_timeout(Some(READ_TIMEOUT))?;
     socket.set_write_timeout(Some(WRITE_TIMEOUT))?;
 
-    return Ok(socket);
+    Ok(socket)
 }
 
-fn get_input_message_sender_and_receiver() -> (std::sync::mpsc::Sender<crate::serialization::InputMessage>, std::sync::mpsc::Receiver<crate::serialization::InputMessage>) {
-    return std::sync::mpsc::channel();
+fn get_input_message_sender_and_receiver() -> (
+    std::sync::mpsc::Sender<crate::serialization::InputMessage>,
+    std::sync::mpsc::Receiver<crate::serialization::InputMessage>,
+) {
+    std::sync::mpsc::channel()
 }
 
 pub struct Server {
@@ -25,29 +29,30 @@ pub struct Server {
 }
 
 impl Server {
-    pub fn new(bind_address: std::net::SocketAddr, incoming_input_message_sender: std::sync::mpsc::Sender<crate::serialization::InputMessage>) -> Result<Self, anyhow::Error> {
+    pub fn new(
+        bind_address: std::net::SocketAddr,
+        incoming_input_message_sender: std::sync::mpsc::Sender<crate::serialization::InputMessage>,
+    ) -> Result<Self, anyhow::Error> {
         let socket = get_socket(bind_address)?;
 
-        return Ok(Self {
+        Ok(Self {
             bind_address: socket.local_addr()?,
             socket,
             incoming_input_message_sender,
             closed: std::sync::Arc::new(std::sync::Mutex::new(false)),
-        });
+        })
     }
 
     pub fn get_closer(&self) -> impl Fn() {
         let closed = std::sync::Arc::clone(&self.closed);
         return move || {
-            {
-                let mut closed = closed.lock().unwrap();
-                *closed = true;
-            }
+            let mut closed = closed.lock().unwrap();
+            *closed = true;
         };
     }
 
     pub fn get_bind_address(&self) -> std::net::SocketAddr {
-        return self.bind_address.clone();
+        self.bind_address
     }
 
     pub fn run(&self) -> anyhow::Result<()> {
@@ -82,7 +87,7 @@ impl Server {
 
         drop(self.incoming_input_message_sender.clone());
 
-        return Ok(());
+        Ok(())
     }
 }
 
@@ -99,38 +104,39 @@ impl Client {
     pub fn new(send_address: std::net::SocketAddr) -> Result<Self, anyhow::Error> {
         let socket = get_socket("0.0.0.0:0".parse()?)?;
 
-        let (outgoing_input_message_sender, outgoing_input_message_receiver) = get_input_message_sender_and_receiver();
+        let (outgoing_input_message_sender, outgoing_input_message_receiver) =
+            get_input_message_sender_and_receiver();
 
-        return Ok(Self {
+        Ok(Self {
             send_address,
             bind_address: socket.local_addr()?,
             socket,
             outgoing_input_message_sender,
             outgoing_input_message_receiver,
             closed: std::sync::Arc::new(std::sync::Mutex::new(false)),
-        });
+        })
     }
 
     pub fn get_closer(&self) -> impl Fn() {
         let closed = std::sync::Arc::clone(&self.closed);
         return move || {
-            {
-                let mut closed = closed.lock().unwrap();
-                *closed = true;
-            }
+            let mut closed = closed.lock().unwrap();
+            *closed = true;
         };
     }
 
     pub fn get_bind_address(&self) -> std::net::SocketAddr {
-        return self.bind_address.clone();
+        self.bind_address
     }
 
     pub fn get_send_address(&self) -> std::net::SocketAddr {
-        return self.send_address.clone();
+        self.send_address
     }
 
-    pub fn get_outgoing_input_message_sender(&self) -> std::sync::mpsc::Sender<crate::serialization::InputMessage> {
-        return self.outgoing_input_message_sender.clone();
+    pub fn get_outgoing_input_message_sender(
+        &self,
+    ) -> std::sync::mpsc::Sender<crate::serialization::InputMessage> {
+        self.outgoing_input_message_sender.clone()
     }
 
     pub fn run(&self) -> anyhow::Result<()> {
@@ -142,7 +148,9 @@ impl Client {
                 }
             }
 
-            let recv_timeout_result = self.outgoing_input_message_receiver.recv_timeout(std::time::Duration::from_secs(1));
+            let recv_timeout_result = self
+                .outgoing_input_message_receiver
+                .recv_timeout(std::time::Duration::from_secs(1));
             if recv_timeout_result.is_err() {
                 continue;
             }
@@ -154,7 +162,7 @@ impl Client {
             let _ = self.socket.send_to(&buf, self.send_address)?;
         }
 
-        return Ok(());
+        Ok(())
     }
 }
 
@@ -164,7 +172,8 @@ mod tests {
 
     #[test]
     fn happy_path() -> anyhow::Result<()> {
-        let (incoming_input_message_sender, incoming_input_message_receiver) = get_input_message_sender_and_receiver();
+        let (incoming_input_message_sender, incoming_input_message_receiver) =
+            get_input_message_sender_and_receiver();
 
         let server = Server::new("0.0.0.0:0".parse()?, incoming_input_message_sender)?;
         let client = Client::new(server.get_bind_address())?;
@@ -207,7 +216,7 @@ mod tests {
         server_handle.join().unwrap();
         client_handle.join().unwrap();
 
-        return Ok(());
+        Ok(())
     }
 
     #[test]
@@ -240,12 +249,13 @@ mod tests {
 
         client_handle.join().unwrap();
 
-        return Ok(());
+        Ok(())
     }
 
     #[test]
     fn no_client() -> anyhow::Result<()> {
-        let (incoming_input_message_sender, incoming_input_message_receiver) = get_input_message_sender_and_receiver();
+        let (incoming_input_message_sender, incoming_input_message_receiver) =
+            get_input_message_sender_and_receiver();
 
         let server = Server::new("0.0.0.0:0".parse()?, incoming_input_message_sender)?;
 
@@ -261,6 +271,6 @@ mod tests {
 
         server_handle.join().unwrap();
 
-        return Ok(());
+        Ok(())
     }
 }

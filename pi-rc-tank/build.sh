@@ -13,7 +13,6 @@ cd ../
 
 echo -e "\nrunning docker build...\n"
 docker build \
-  --platform=linux/arm64 \
   -t initialed85/rc-things-pi-rc-tank:latest \
   -f docker/pi-rc-tank/Dockerfile \
   .
@@ -25,12 +24,10 @@ fi
 cd pi-rc-tank
 
 echo -e "\nextracting built artifacts...\n"
-docker run \
-  --platform=linux/arm64 \
-  --rm -it \
-  -v "$(pwd)/target:/srv/artifacts" \
-  initialed85/rc-things-pi-rc-tank:latest
+rm -fr target
+docker run --rm -it -v "$(pwd)/target:/srv/artifacts" initialed85/rc-things-pi-rc-tank:latest
 
 echo -e "\nbuilt artifacts:\n"
 
 find "$(pwd)/target/pi-rc-tank"
+file "$(pwd)/target/pi-rc-tank"
