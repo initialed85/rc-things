@@ -187,6 +187,22 @@ impl Vehicle {
                 input_message.throttle = -throttle_adjusted;
             }
 
+            let throttle_left_adjusted =
+                input_message.throttle_left.abs() * self.throttle_max / 1.0;
+            if input_message.throttle_left > 0.0 {
+                input_message.throttle_left = throttle_left_adjusted
+            } else if input_message.throttle_left < 0.0 {
+                input_message.throttle_left = -throttle_left_adjusted;
+            }
+
+            let throttle_right_adjusted =
+                input_message.throttle_right.abs() * self.throttle_max / 1.0;
+            if input_message.throttle_right > 0.0 {
+                input_message.throttle_right = throttle_right_adjusted
+            } else if input_message.throttle_right < 0.0 {
+                input_message.throttle_right = -throttle_right_adjusted;
+            }
+
             if self.steering_offset > 0.0 {
                 if input_message.steering >= 0.0 && input_message.steering < self.steering_offset {
                     input_message.steering = self.steering_offset
