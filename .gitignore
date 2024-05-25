@@ -1,8 +1,10 @@
-/target
-/Cargo.lock
+target
+Cargo.lock
 .DS_Store
 .idea
-/**/cmake-build-debug
-/artifacts
+**/cmake-build-debug
+artifacts
 espressif
 platformio
+**/target
+temp

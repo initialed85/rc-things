@@ -209,6 +209,8 @@ mod tests {
             steering,
             throttle_left: 0.0,
             throttle_right: 0.0,
+            steering_left: 0.0,
+            steering_right: 0.0,
             mode_up: false,
             mode_down: false,
             mode_left: false,

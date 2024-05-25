@@ -6,6 +6,8 @@ pub struct InputMessage {
     // Differential steering
     pub throttle_left: f32,
     pub throttle_right: f32,
+    pub steering_left: f32,
+    pub steering_right: f32,
     // Other
     pub mode_up: bool,
     pub mode_down: bool,
@@ -43,6 +45,8 @@ mod tests {
             steering: 0.69,
             throttle_left: 0.69,
             throttle_right: 0.69,
+            steering_left: 0.69,
+            steering_right: 0.69,
             mode_up: true,
             mode_down: true,
             mode_left: true,

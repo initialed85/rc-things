@@ -61,8 +61,12 @@ fn handle_input(
             .get(GamepadButton::new(gamepad, GamepadButtonType::LeftTrigger2))
             .unwrap();
 
-        let steering = axes
+        let steering_left = axes
             .get(GamepadAxis::new(gamepad, GamepadAxisType::LeftStickX))
+            .unwrap();
+
+        let steering_right = axes
+            .get(GamepadAxis::new(gamepad, GamepadAxisType::RightStickX))
             .unwrap();
 
         let throttle_left = axes
@@ -95,9 +99,11 @@ fn handle_input(
 
         let input_message = InputMessage {
             throttle: throttle - brake,
+            steering: steering_left,
             throttle_left,
             throttle_right,
-            steering,
+            steering_left,
+            steering_right,
             handbrake,
             mode_up,
             mode_down,

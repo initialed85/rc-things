@@ -1,5 +1,7 @@
 use anyhow::Context;
-use embedded_svc::wifi::{AccessPointConfiguration, AuthMethod, Configuration, Protocol};
+use embedded_svc::wifi::{
+    AccessPointConfiguration, AuthMethod, ClientConfiguration, Configuration, Protocol,
+};
 use esp_idf_hal::gpio::*;
 use esp_idf_hal::ledc::{config::TimerConfig, LedcDriver, LedcTimerDriver, Resolution};
 use esp_idf_hal::peripherals::Peripherals;
@@ -58,6 +60,13 @@ fn main() -> anyhow::Result<()> {
     wifi_driver.set_configuration(&Configuration::AccessPoint(AccessPointConfiguration {
         ssid: "esp32-rc-car".into(),
         protocols: Protocol::P802D11BGN.into(),
+        auth_method: AuthMethod::WPA2Personal,
+        password: "car123!@#".into(),
+        ..Default::default()
+    }))?;
+
+    wifi_driver.set_configuration(&Configuration::Client(ClientConfiguration {
+        ssid: "esp32-rc-car".into(),
         auth_method: AuthMethod::WPA2Personal,
         password: "car123!@#".into(),
         ..Default::default()

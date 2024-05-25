@@ -10,7 +10,7 @@ function finish() {
 trap finish EXIT
 
 echo -e "\nrunning native build...\n"
-cargo build
+cargo build --release
 
 echo -e "\nbuilt artifacts:\n"
 

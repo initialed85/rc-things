@@ -10,4 +10,4 @@ function finish() {
 trap finish EXIT
 
 echo -e "\nflashing target code...\n"
-espflash --speed 460800 /dev/cu.usbserial-* target/xtensa-esp32-espidf/debug/esp32-rc-car
+cargo espflash --speed 460800 /dev/cu.usbserial-* --bin target/xtensa-esp32-espidf/debug/esp32-rc-car

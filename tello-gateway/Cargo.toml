@@ -1,0 +1,13 @@
+[package]
+name = "tello-gateway"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.70"
+serde = { version = "1.0.148", features = ["derive"] }
+rmp-serde = { version = "1.1.1" }
+serde_derive = "1.0.152"
+rc-vehicle = { path = "../rc-vehicle" }
+rc-messaging = { path = "../rc-messaging" }
+tello = "0.6.3"
