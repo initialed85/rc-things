@@ -1,7 +1,5 @@
 use anyhow::Context;
-use embedded_svc::wifi::{
-    AccessPointConfiguration, AuthMethod, ClientConfiguration, Configuration, Protocol,
-};
+use embedded_svc::wifi::{AccessPointConfiguration, AuthMethod, Configuration, Protocol};
 use esp_idf_hal::gpio::*;
 use esp_idf_hal::ledc::{config::TimerConfig, LedcDriver, LedcTimerDriver, Resolution};
 use esp_idf_hal::peripherals::Peripherals;
@@ -36,54 +34,66 @@ fn main() -> anyhow::Result<()> {
         ..Default::default()
     };
 
-    let throttle_and_steering_timer_driver = std::sync::Arc::new(LedcTimerDriver::new(
-        peripherals.ledc.timer0,
-        &throttle_and_steering_timer_config,
-    )?);
+    let throttle_and_steering_timer_driver = std::sync::Arc::new(
+        LedcTimerDriver::new(peripherals.ledc.timer0, &throttle_and_steering_timer_config)
+            .context("failed LedcTimerDriver::new()")?,
+    );
     let throttle_driver = LedcDriver::new(
         peripherals.ledc.channel0,
         std::sync::Arc::clone(&throttle_and_steering_timer_driver),
         peripherals.pins.gpio4,
-    )?;
+    )
+    .context("failed LedcDriver::new()")?;
     let steering_driver = LedcDriver::new(
         peripherals.ledc.channel1,
         std::sync::Arc::clone(&throttle_and_steering_timer_driver),
         peripherals.pins.gpio5,
-    )?;
+    )
+    .context("failed LedcDriver::new()")?;
 
     //
     // wifi
     //
 
-    let mut wifi_driver = EspWifi::new(peripherals.modem, sys_loop, Some(nvs))?;
+    let mut wifi_driver =
+        EspWifi::new(peripherals.modem, sys_loop, Some(nvs)).context("failed EspWifi::new()")?;
 
-    wifi_driver.set_configuration(&Configuration::AccessPoint(AccessPointConfiguration {
-        ssid: "esp32-rc-car".into(),
-        protocols: Protocol::P802D11BGN.into(),
-        auth_method: AuthMethod::WPA2Personal,
-        password: "car123!@#".into(),
-        ..Default::default()
-    }))?;
+    wifi_driver
+        .set_configuration(&Configuration::AccessPoint(AccessPointConfiguration {
+            ssid: "esp32-rc-car".try_into().expect("SSID does not fit into provided buffer"),
+            protocols: Protocol::P802D11BGN.into(),
+            auth_method: AuthMethod::WPA2Personal,
+            password: "car123!@#".try_into().expect("Password does not fit into provided buffer"),
+            ..Default::default()
+        }))
+        .context("failed wifi_driver.set_configuration(Configuration::AccessPoint)")?;
 
-    wifi_driver.set_configuration(&Configuration::Client(ClientConfiguration {
-        ssid: "esp32-rc-car".into(),
-        auth_method: AuthMethod::WPA2Personal,
-        password: "car123!@#".into(),
-        ..Default::default()
-    }))?;
+    // wifi_driver
+    //     .set_configuration(&Configuration::Client(ClientConfiguration {
+    //         ssid: "esp32-rc-car".into(),
+    //         auth_method: AuthMethod::WPA2Personal,
+    //         password: "car123!@#".into(),
+    //         ..Default::default()
+    //     }))
+    //     .context("failed wifi_driver.set_configuration(Configuration::Client)")?;
 
-    wifi_driver.start()?;
+    wifi_driver.start().context("failed wifi_driver.start()")?;
 
-    let wifi_config = wifi_driver.get_configuration()?;
+    let wifi_config = wifi_driver
+        .get_configuration()
+        .context("failed get_configuration.start()")?;
     println!("wifi_config={:?}", wifi_config);
 
-    while !wifi_driver.is_up()? {
+    while !wifi_driver.is_up().context("failed wifi_driver.is_up()")? {
         println!("waiting for wifi_driver.is_up()...");
         std::thread::sleep(std::time::Duration::from_millis(1000));
     }
     println!("connected.");
 
-    let ip_info = wifi_driver.ap_netif().get_ip_info()?;
+    let ip_info = wifi_driver
+        .ap_netif()
+        .get_ip_info()
+        .context("failed wifi_driver.ap_netif().get_ip_info()")?;
     println!("ip_info={:?}", ip_info);
 
     //
@@ -99,7 +109,9 @@ fn main() -> anyhow::Result<()> {
         .spawn(move || -> anyhow::Result<()> {
             // Server converts UDP datagrams to InputMessages
             let server = rc_messaging::transport::Server::new(
-                format!("{}:{}", ip_info.ip.to_string(), 13337).parse()?,
+                format!("{}:{}", ip_info.ip, 13337)
+                    .parse()
+                    .context("failed rc_messaging::transport::Server::new()")?,
                 incoming_input_message_sender,
             )?;
 

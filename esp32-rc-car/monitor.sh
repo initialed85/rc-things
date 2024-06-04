@@ -10,4 +10,4 @@ function finish() {
 trap finish EXIT
 
 echo -e "\nrunning serial monitor...\n"
-espflash serial-monitor /dev/cu.usbserial-*
+cargo espflash monitor --port /dev/cu.usbserial-*

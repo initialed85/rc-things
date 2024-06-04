@@ -10,7 +10,7 @@ function finish() {
 trap finish EXIT
 
 echo -e "\nrunning native build...\n"
-cargo build --release
+CRATE_CC_NO_DEFAULTS=1 cargo build --release
 
 echo -e "\nbuilt artifacts:\n"
 
